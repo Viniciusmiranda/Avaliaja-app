@@ -2,39 +2,37 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 // Public: Submit Review
+// Public: Submit Review
 exports.submitReview = async (req, res) => {
-    const { rating, observation, attendant, ip, city, state, device, link_maps } = req.body;
+    const { rating, observation, attendant, ip, city, state, device, link_maps, companySlug } = req.body;
 
-    // We accept "attendant" as a Name String from the frontend (url param)
-    // We need to find or create a dummy Attendant for that name if not exists, 
-    // OR we should have a real ID. 
-    // For this implementation, let's assume we find by name.
+    if (!companySlug) {
+        return res.status(400).json({ error: "Contexto de empresa (slug) é obrigatório." });
+    }
 
     try {
-        let attendantRecord = await prisma.attendant.findFirst({
-            where: { name: attendant }
+        // 1. Find Company
+        const company = await prisma.company.findUnique({
+            where: { slug: companySlug }
         });
 
-        // If not found, and we want to allow dynamic creation (or fallback to General)
-        if (!attendantRecord) {
-            // Check if "Geral" exists
-            attendantRecord = await prisma.attendant.findFirst({ where: { name: 'Geral' } });
+        if (!company) return res.status(404).json({ error: "Empresa não encontrada." });
 
-            if (!attendantRecord) {
-                // Create Default Company if needed
-                let company = await prisma.company.findFirst();
-                if (!company) {
-                    company = await prisma.company.create({ data: { name: "Nacional Assistência" } });
-                }
-
-                // Create "Geral" or the specific name
-                attendantRecord = await prisma.attendant.create({
-                    data: {
-                        name: attendant || "Geral",
-                        companyId: company.id
-                    }
-                });
+        // 2. Find or Create Attendant within this Company
+        let attendantRecord = await prisma.attendant.findFirst({
+            where: {
+                name: attendant || "Geral",
+                companyId: company.id
             }
+        });
+
+        if (!attendantRecord) {
+            attendantRecord = await prisma.attendant.create({
+                data: {
+                    name: attendant || "Geral",
+                    companyId: company.id
+                }
+            });
         }
 
         const review = await prisma.review.create({
@@ -60,6 +58,7 @@ exports.submitReview = async (req, res) => {
                     stars: review.stars,
                     comment: review.comment,
                     attendant: attendantRecord.name,
+                    company: company.name,
                     client_ip: ip,
                     client_city: city,
                     client_state: state,
@@ -97,32 +96,42 @@ exports.updateReview = async (req, res) => {
 
 // Private: Get Dashboard Data
 exports.getDashboardData = async (req, res) => {
+    const { companyId } = req.user;
+
+    if (!companyId) {
+        return res.status(403).json({ error: "Contexto de empresa não encontrado." });
+    }
 
     try {
-        // Here we would filter by Company ID from req.user
-        // For now, get all
-        const totalReviews = await prisma.review.count();
+        const totalReviews = await prisma.review.count({
+            where: { attendant: { companyId } }
+        });
+
         const reviews = await prisma.review.findMany({
+            where: { attendant: { companyId } },
             include: { attendant: true },
             orderBy: { createdAt: 'desc' },
             take: 100
         });
 
+        // NPS Calculation
+        const promoters = await prisma.review.count({ where: { stars: 5, attendant: { companyId } } });
+        const detractors = await prisma.review.count({ where: { stars: { lte: 3 }, attendant: { companyId } } });
+        const nps = totalReviews > 0 ? Math.round(((promoters - detractors) / totalReviews) * 100) : 0;
+
+        // Average
         const aggs = await prisma.review.aggregate({
-            _avg: { stars: true }
+            _avg: { stars: true },
+            where: { attendant: { companyId } }
         });
 
+        // Attendants stats
         const attendants = await prisma.attendant.findMany({
+            where: { companyId },
             include: {
                 _count: { select: { reviews: true } }
             }
         });
-
-        // Calculate NPS (Promoters 9-10 (we use 5stars), Detractors 0-6 (1-3 stars))
-        // Simplified: 5=Promoter, 4=Passive, 1-3=Detractor
-        const promoters = await prisma.review.count({ where: { stars: 5 } });
-        const detractors = await prisma.review.count({ where: { stars: { lte: 3 } } });
-        const nps = totalReviews > 0 ? Math.round(((promoters - detractors) / totalReviews) * 100) : 0;
 
         res.json({
             metrics: {

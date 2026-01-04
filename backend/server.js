@@ -24,14 +24,25 @@ app.use('/api/auth', authRoutes);
 app.use('/api/avaliacoes', reviewRoutes);
 app.use('/api/atendentes', attendantRoutes);
 
-// Root Route (Serve login.html)
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/login.html'));
+// Landing / Login / Register
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, '../frontend/login.html')));
+app.get('/cadastro', (req, res) => res.sendFile(path.join(__dirname, '../frontend/register.html')));
+
+// Dynamic Routes (Must come after API routes)
+// 1. Dashboard: /:companySlug/dashboard
+app.get('/:slug/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/dashboard.html'));
 });
 
-// Evaluation Route (Serve index.html)
-app.get('/avaliar', (req, res) => {
+// 2. Evaluation: /:companySlug/:attendantName
+app.get('/:slug/:attendant', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/index.html'));
+});
+
+// 3. Fallback for /:companySlug -> Redirect to login or dashboard
+app.get('/:slug', (req, res) => {
+    // Could check if slug exists, but for now serve login
+    res.sendFile(path.join(__dirname, '../frontend/login.html'));
 });
 
 // Health Check

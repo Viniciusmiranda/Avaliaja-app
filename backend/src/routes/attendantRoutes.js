@@ -7,57 +7,50 @@ const prisma = new PrismaClient();
 // Create Attendant (Private)
 router.post('/', auth, async (req, res) => {
     const { name } = req.body;
+    const { companyId } = req.user;
+
+    if (!companyId) return res.status(400).json({ error: "Contexto de empresa desconhecido." });
+
     try {
-        // Find user's company or default
-        const user = await prisma.user.findUnique({ where: { id: req.user.id } });
-        let companyId = user.companyId;
-
-        if (!companyId) {
-            // Fallback for this demo if user has no company
-            let company = await prisma.company.findFirst();
-            if (!company) {
-                company = await prisma.company.create({
-                    data: { name: "Nacional Assistência", domain: "nacional.com.br" }
-                });
-            }
-            companyId = company.id;
-
-            // Auto-link user to this company for future consistency
-            await prisma.user.update({
-                where: { id: user.id },
-                data: { companyId: company.id }
-            });
-        }
-
         const newAttendant = await prisma.attendant.create({
             data: { name, companyId }
         });
-
         res.json(newAttendant);
     } catch (err) {
         res.status(500).json({ error: 'Erro ao criar atendente.' });
     }
 });
 
-// Get All
+// Get All (Scoped by Company)
 router.get('/', auth, async (req, res) => {
+    const { companyId } = req.user;
+    if (!companyId) return res.status(400).json({ error: "Contexto de empresa desconhecido." });
+
     try {
-        const list = await prisma.attendant.findMany();
+        const list = await prisma.attendant.findMany({
+            where: { companyId }
+        });
         res.json(list);
     } catch (err) {
         res.status(500).json({ error: 'Erro.' });
     }
 });
 
-// Delete (Private)
+// Delete (Private & Scoped)
 router.delete('/:id', auth, async (req, res) => {
+    const { id } = req.params;
+    const { companyId } = req.user;
+
     try {
-        const { id } = req.params;
-        // Optional: cascaded delete of reviews? Or keep them? 
-        // Usually safer to keep reviews or soft delete. For this demo, we delete.
-        // Prisma default might prevent if relations exist. We should delete reviews first.
+        // Verify ownership
+        const attendant = await prisma.attendant.findFirst({
+            where: { id, companyId }
+        });
+
+        if (!attendant) return res.status(404).json({ error: "Atendente não encontrado ou sem permissão." });
+
         await prisma.review.deleteMany({ where: { attendantId: id } });
-        await prisma.attendant.delete({ where: { id: id } });
+        await prisma.attendant.delete({ where: { id } });
         res.json({ message: 'Deletado com sucesso' });
     } catch (err) {
         console.error(err);

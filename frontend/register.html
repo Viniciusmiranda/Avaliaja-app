@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Cadastro Empresa | AvalieJá</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #ffffff;
+            --accent-blue: #2b1da7;
+            --deep-blue: #030518;
+            --gold: #FFD700;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f2a13 0%, #1e1b4b 50%, #165524 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Montserrat', sans-serif;
+            color: var(--primary);
+        }
+
+        .login-container {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 3rem;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        h2 {
+            margin-bottom: 30px;
+            font-weight: 700;
+            color: var(--deep-blue);
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--deep-blue);
+            opacity: 1;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--deep-blue);
+            font-family: inherit;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            background: #ffffff;
+            box-shadow: 0 0 0 4px rgba(43, 29, 167, 0.1);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #2b1da7 0%, #1a106b 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(43, 29, 167, 0.4);
+        }
+
+        .back-link {
+            display: block;
+            margin-top: 20px;
+            color: var(--deep-blue);
+            text-decoration: none;
+            font-size: 0.9rem;
+            opacity: 0.7;
+            font-weight: 500;
+        }
+
+        .back-link:hover {
+            color: var(--accent-blue);
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="login-container">
+        <h2>Cadastro Empresa</h2>
+
+        <form id="registerForm">
+            <div class="input-group">
+                <label>Nome da Empresa</label>
+                <input type="text" id="companyName" required placeholder="Ex: Minha Loja Ltda"
+                    oninput="updatePreview()">
+            </div>
+
+            <p
+                style="text-align: left; font-size: 0.8rem; color: var(--accent-blue); margin-bottom: 20px; font-weight: 600;">
+                Seu link será: avaliaja.com/<span id="slugPreview">...</span>
+            </p>
+
+            <div class="input-group">
+                <label>Área de Atuação</label>
+                <select id="area" required
+                    style="width: 100%; padding: 14px 16px; border-radius: 12px; border: 1px solid rgba(0, 0, 0, 0.1); background: rgba(255, 255, 255, 0.9); color: var(--deep-blue); font-family: inherit; font-size: 1rem; appearance: none;">
+                    <option value="" disabled selected>Selecione sua área</option>
+                    <option value="Varejo">Varejo</option>
+                    <option value="Saúde">Saúde</option>
+                    <option value="Alimentação">Alimentação</option>
+                    <option value="Serviços">Serviços</option>
+                    <option value="Tecnologia">Tecnologia</option>
+                    <option value="Outros">Outros</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>WhatsApp</label>
+                <input type="tel" id="whatsapp" required placeholder="(11) 99999-9999">
+            </div>
+
+            <div class="input-group">
+                <label>Nome do Gestor</label>
+                <input type="text" id="name" required placeholder="Seu nome">
+            </div>
+
+            <div class="input-group">
+                <label>Email de Acesso</label>
+                <input type="email" id="email" required placeholder="seu@email.com">
+            </div>
+
+            <div class="input-group">
+                <label>Senha</label>
+                <input type="password" id="password" required placeholder="••••••" minlength="6">
+            </div>
+
+            <div style="margin-bottom: 20px; text-align: left; display: flex; align-items: flex-start; gap: 10px;">
+                <input type="checkbox" id="terms" required style="width: 20px; height: 20px; margin-top: 2px;">
+                <label for="terms" style="display: inline; font-size: 0.85rem; font-weight: 500;">
+                    Ao selecionar seu plano você concorda com os <a href="#" style="color: var(--accent-blue);">Termos
+                        de uso</a> e a <a href="#" style="color: var(--accent-blue);">Política de privacidade</a>. Li e
+                    aceito os termos.
+                </label>
+            </div>
+
+            <button type="submit" class="btn-login">CRIAR CONTA</button>
+        </form>
+
+        <script>
+            function updatePreview() {
+                const name = document.getElementById('companyName').value;
+                const slug = name.toLowerCase()
+                    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                    .replace(/\s+/g, '-')
+                    .replace(/[^\w-]+/g, '');
+                document.getElementById('slugPreview').innerText = slug || "...";
+            }
+
+            document.getElementById('registerForm').addEventListener('submit', async function (e) {
+                e.preventDefault();
+                const btn = document.querySelector('.btn-login');
+                const originalText = btn.innerText;
+
+                btn.innerText = "Criando...";
+                btn.disabled = true;
+
+                const payload = {
+                    companyName: document.getElementById('companyName').value,
+                    area: document.getElementById('area').value,
+                    whatsapp: document.getElementById('whatsapp').value,
+                    name: document.getElementById('name').value,
+                    email: document.getElementById('email').value,
+                    password: document.getElementById('password').value
+                };
+
+                try {
+                    const response = await fetch('/api/auth/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        alert(`Conta criada com sucesso! Link da empresa: ${data.slug}`);
+                        window.location.href = 'login.html';
+                    } else {
+                        alert(data.error || 'Erro ao criar conta.');
+                        btn.innerText = originalText;
+                        btn.disabled = false;
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('Erro de conexão com o servidor.');
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                }
+            });
+        </script>
+
+        <a href="login.html" class="back-link">Já tem conta? Fazer Login</a>
+    </div>
+
+</body>
+
+</html>

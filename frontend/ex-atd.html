@@ -540,6 +540,7 @@
       mapsLink: null,
       device: navigator.userAgent,
       attendant: "Geral",
+      companySlug: null,
       reviewId: null
     };
 
@@ -555,12 +556,28 @@
     const displayAttendant = document.getElementById('attendantNameDisplay');
 
     // --- INIT ---
-    // 1. Get Attendant Name
-    const params = new URLSearchParams(window.location.search);
-    const attName = params.get('attendant');
-    if (attName) {
-      userContext.attendant = attName;
-      displayAttendant.innerText = "Atd. " + attName;
+    // 1. Get Attendant Name & Company Slug from URL
+    // Format: /:slug/:attendant
+    const pathParts = window.location.pathname.split('/');
+    // parts: ["", "slug", "attendant"]
+    const slug = pathParts[1];
+    let attName = pathParts[2];
+
+    if (slug && slug !== 'avaliar') { // Avoid conflict if old route used
+      userContext.companySlug = slug;
+      if (attName) {
+        attName = decodeURIComponent(attName);
+        userContext.attendant = attName;
+        displayAttendant.innerText = "Atd. " + attName;
+      }
+    } else {
+      // Fallback or Legacy
+      const params = new URLSearchParams(window.location.search);
+      const pAtt = params.get('attendant');
+      if (pAtt) {
+        userContext.attendant = pAtt;
+        displayAttendant.innerText = "Atd. " + pAtt;
+      }
     }
 
     // 2. Hover Logic
@@ -664,7 +681,10 @@
           city: userContext.city,
           state: userContext.state,
           device: userContext.device,
-          link_maps: userContext.mapsLink
+          state: userContext.state,
+          device: userContext.device,
+          link_maps: userContext.mapsLink,
+          companySlug: userContext.companySlug
         };
 
         const res = await fetch(API_URL, {

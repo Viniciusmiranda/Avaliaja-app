@@ -15,31 +15,101 @@
 
     <style>
         :root {
-            --primary-dark: #030518;
-            --primary-blue: #000092;
-            --accent-neon: #2b1da7;
+            --primary: #10b981;
+            --secondary: #3b82f6;
+            --accent: #06b6d4;
+            --dark: #0a1628;
+            --text: #f0fdf4;
+            --text-muted: #cbd5e1;
+
+            /* Dashboard Specific */
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --success: #10b981;
+            --danger: #ef4444;
             --gold: #FFD700;
-            --text-main: #ffffff;
-            --text-muted: rgba(255, 255, 255, 0.6);
-            --glass-bg: rgba(255, 255, 255, 0.03);
-            --glass-border: rgba(255, 255, 255, 0.05);
-            --success: #00e676;
-            --danger: #ff5252;
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Montserrat', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
 
         body {
-            background: linear-gradient(135deg, var(--primary-blue) 0%, #0a0a2e 50%, #000000 100%);
-            color: var(--text-main);
+            background: var(--dark);
+            color: var(--text);
             min-height: 100vh;
             display: flex;
             overflow-x: hidden;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        /* Background animado */
+        .animated-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .gradient-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .orb1 {
+            width: 500px;
+            height: 500px;
+            background: var(--primary);
+            top: -200px;
+            left: -200px;
+            animation-delay: 0s;
+        }
+
+        .orb2 {
+            width: 400px;
+            height: 400px;
+            background: var(--secondary);
+            bottom: -150px;
+            right: -150px;
+            animation-delay: 5s;
+        }
+
+        .orb3 {
+            width: 350px;
+            height: 350px;
+            background: var(--accent);
+            top: 50%;
+            left: 50%;
+            animation-delay: 10s;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            25% {
+                transform: translate(50px, 100px) scale(1.1);
+            }
+
+            50% {
+                transform: translate(-30px, 50px) scale(0.9);
+            }
+
+            75% {
+                transform: translate(30px, -50px) scale(1.05);
+            }
         }
 
         /* Scrollbar aesthetics */
@@ -52,17 +122,17 @@
         }
 
         ::-webkit-scrollbar-thumb {
-            background: var(--accent-neon);
+            background: var(--secondary);
             border-radius: 4px;
         }
 
         /* GLASS MORPHISM UTILS */
         .glass-panel {
-            background: var(--glass-bg);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
         }
 
@@ -78,6 +148,12 @@
             flex-direction: column;
             z-index: 100;
             transition: transform 0.3s ease;
+            background: rgba(10, 22, 40, 0.6);
+            /* Dark Glass for Harmony */
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 10px 0 30px rgba(0, 0, 0, 0.3);
         }
 
         .logo-area {
@@ -88,7 +164,15 @@
         .logo-area img {
             max-width: 100%;
             height: auto;
-            filter: drop-shadow(0 0 10px rgba(43, 29, 167, 0.5));
+            /* Make logo white for contrast on dark bg */
+            filter: brightness(0) invert(1) drop-shadow(0 0 5px rgba(255, 255, 255, 0.3));
+            opacity: 0.9;
+            transition: all 0.3s;
+        }
+
+        .logo-area img:hover {
+            opacity: 1;
+            filter: brightness(0) invert(1) drop-shadow(0 0 8px rgba(255, 255, 255, 0.6));
         }
 
         .nav-links {
@@ -103,23 +187,27 @@
             cursor: pointer;
             transition: all 0.3s;
             color: var(--text-muted);
+            /* Revert to light/muted text */
             font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             text-decoration: none;
+            border: 1px solid transparent;
         }
 
         .nav-item.active,
         .nav-item:hover {
-            background: rgba(43, 29, 167, 0.4);
+            background: rgba(255, 255, 255, 0.05);
             color: #fff;
-            box-shadow: 0 0 15px rgba(43, 29, 167, 0.3);
-            border-left: 3px solid var(--gold);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            /* Removed accent border for cleaner look */
         }
 
         .nav-icon {
             font-size: 1.2rem;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
         }
 
         /* MAIN CONTENT */
@@ -416,37 +504,50 @@
 </head>
 
 <body>
+    <!-- Background Animado -->
+    <div class="animated-bg">
+        <div class="gradient-orb orb1"></div>
+        <div class="gradient-orb orb2"></div>
+        <div class="gradient-orb orb3"></div>
+    </div>
 
     <!-- SIDEBAR -->
-    <aside class="sidebar glass-panel">
+    <nav class="sidebar">
         <div class="logo-area">
-            <img src="nacional-2.png" alt="Nacional Logotipo">
+            <img src="/logo.png" alt="AvalieJá Logo">
         </div>
 
-        <nav class="nav-links">
-            <div class="nav-item active" onclick="switchView('dashboard', this)">
+        <div class="nav-links">
+            <a href="#" class="nav-item active" onclick="switchTab('dashboard')">
                 <span class="nav-icon">📊</span>
                 Dashboard
-            </div>
-            <div class="nav-item" onclick="switchView('attendants', this)">
+            </a>
+            <a href="#" class="nav-item">
                 <span class="nav-icon">👥</span>
+                Gestores
+            </a>
+            <a href="#" class="nav-item" onclick="openAttendantModal()">
+                <span class="nav-icon">👩‍💼</span>
                 Atendentes
-            </div>
-            <div class="nav-item" onclick="switchView('reviews', this)">
-                <span class="nav-icon">⭐</span>
-                Avaliações
-            </div>
-            <div class="nav-item" onclick="switchView('export', this)">
-                <span class="nav-icon">☁️</span>
-                Exportar Dados
-            </div>
-            <div style="margin-top: auto;">
-                <a href="#" onclick="logout()" class="nav-item" style="color: #ff5252;">
-                    <span class="nav-icon">🚪</span>
-                    Sair / Logout
-                </a>
-            </div>
-        </nav>
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">🎨</span>
+                Personalizar
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">🔌</span>
+                Integrações
+            </a>
+            <a href="#" class="nav-item">
+                <span class="nav-icon">🎧</span>
+                Suporte
+            </a>
+            <a href="#" class="nav-item" onclick="logout()" style="margin-top: auto; color: var(--danger);">
+                <span class="nav-icon">🚪</span>
+                Sair
+            </a>
+        </div>
+    </nav>
     </aside>
 
     <!-- CONTENT -->
@@ -858,18 +959,12 @@
                 });
 
                 if (res.ok) {
-                    // Logic to build link
-                    let baseUrl = window.location.href;
-                    // Try to guess index.html path relative to current dashboard.html
-                    if (baseUrl.includes('dashboard.html')) {
-                        baseUrl = baseUrl.replace('dashboard.html', 'index.html');
-                    } else {
-                        // fallback if user is on root
-                        baseUrl = baseUrl.endsWith('/') ? baseUrl + 'index.html' : baseUrl + '/index.html';
-                    }
-                    baseUrl = baseUrl.split('?')[0].split('#')[0];
+                    // Logic to build link (SaaS: /:companySlug/:attendantName)
+                    const pathParts = window.location.pathname.split('/');
+                    const slug = pathParts[1]; // /slug/dashboard -> slug
+                    const origin = window.location.origin;
 
-                    const fullLink = `${baseUrl}?attendant=${encodeURIComponent(name)}`;
+                    const fullLink = `${origin}/${slug}/${encodeURIComponent(name)}`;
 
                     document.getElementById('generatedLink').value = fullLink;
                     document.getElementById('resultArea').style.display = 'block';

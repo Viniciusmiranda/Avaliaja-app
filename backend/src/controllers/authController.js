@@ -8,7 +8,10 @@ exports.login = async (req, res) => {
     const { email, password } = req.body;
 
     try {
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await prisma.user.findUnique({
+            where: { email },
+            include: { company: true } // Include company data
+        });
         if (!user) return res.status(400).json({ error: 'Usuário não encontrado.' });
 
         const validPass = await bcrypt.compare(password, user.password);
@@ -20,22 +23,69 @@ exports.login = async (req, res) => {
             { expiresIn: '8h' }
         );
 
-        res.json({ token, user: { name: user.name, role: user.role } });
+        res.json({
+            token,
+            user: {
+                name: user.name,
+                role: user.role,
+                companySlug: user.company ? user.company.slug : null
+            }
+        });
     } catch (err) {
+        console.error("Login Error:", err);
         res.status(500).json({ error: 'Erro no servidor.' });
     }
 };
 
 exports.register = async (req, res) => {
-    // Basic registration for demonstration
-    const { name, email, password, role } = req.body;
+    const { companyName, name, email, password, area, whatsapp } = req.body;
+
     try {
-        const hash = await bcrypt.hash(password, 10);
-        const user = await prisma.user.create({
-            data: { name, email, password: hash, role: role || 'gestor' }
+        // Generate Slug
+        const slug = companyName.toLowerCase()
+            .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+            .replace(/\s+/g, '-')
+            .replace(/[^\w-]+/g, '');
+
+        // Transaction: Create Company -> Attendant -> User
+        await prisma.$transaction(async (prisma) => {
+            const newCompany = await prisma.company.create({
+                data: {
+                    name: companyName,
+                    slug,
+                    area,
+                    whatsapp
+                }
+            });
+
+            // Default Attendant
+            await prisma.attendant.create({
+                data: {
+                    name: "Geral",
+                    companyId: newCompany.id
+                }
+            });
+
+            // Admin User
+            const hashedPassword = await bcrypt.hash(password, 10);
+            await prisma.user.create({
+                data: {
+                    name,
+                    email,
+                    password: hashedPassword,
+                    role: 'ADMIN',
+                    companyId: newCompany.id
+                }
+            });
         });
-        res.json({ message: 'Usuário criado com sucesso!' });
+
+        res.status(201).json({ message: 'Empresa registrada!', slug });
     } catch (err) {
-        res.status(400).json({ error: 'Erro ao criar usuário (email duplicado?)' });
+        console.error(err);
+        if (err.code === 'P2002') {
+            const field = err.meta ? err.meta.target : 'campo';
+            return res.status(400).json({ error: `Já existe um registro com este ${field} (Email ou Empresa).` });
+        }
+        res.status(500).json({ error: 'Erro ao registrar empresa.' });
     }
 };
