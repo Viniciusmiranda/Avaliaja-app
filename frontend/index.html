@@ -162,12 +162,13 @@
         .toggle-password {
             position: absolute;
             right: 15px;
-            top: 42px;
-            /* Adjust based on label height and padding */
+            top: 50%;
+            transform: translateY(-50%);
             cursor: pointer;
             color: var(--text-muted);
             font-size: 1.2rem;
             user-select: none;
+            z-index: 2;
         }
 
         .toggle-password:hover {
