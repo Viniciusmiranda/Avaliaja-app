@@ -1241,12 +1241,20 @@
         async function loadChangelog() {
             const container = document.getElementById('changelogContent');
             try {
-                const res = await fetch('changelog.md');
+                const res = await fetch('/changelog.md');
                 if (!res.ok) throw new Error("Erro ao carregar");
+
+                // Check if we accidentally got HTML (login page or app shell)
+                const contentType = res.headers.get("content-type");
+                if (contentType && contentType.includes("text/html")) {
+                    throw new Error("Arquivo não encontrado (Retornou HTML)");
+                }
+
                 const text = await res.text();
                 // Parse using Marked (if available) or raw text
                 container.innerHTML = typeof marked !== 'undefined' ? marked.parse(text) : `<pre>${text}</pre>`;
             } catch (e) {
+                console.error(e);
                 container.innerHTML = "Não foi possível carregar o histórico de versões.";
             }
         }
