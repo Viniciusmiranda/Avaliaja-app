@@ -43,6 +43,7 @@ model Company {
   logo         String?
   primaryColor String?
   settings     Json?      // Armazena config flexível (perguntas, ordem, etc)
+  notifications Json?     // Armazena config de integrações (WhatsApp, triggers)
 
   @@map("empresas")
 }

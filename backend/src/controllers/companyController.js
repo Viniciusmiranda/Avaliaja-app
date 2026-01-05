@@ -1,13 +1,24 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
+const bcrypt = require('bcryptjs');
+
 // Get Settings (Logo, Color, etc)
 exports.getSettings = async (req, res) => {
     try {
         const { companyId } = req.user;
         const company = await prisma.company.findUnique({
             where: { id: companyId },
-            select: { logo: true, primaryColor: true, settings: true, slug: true, name: true }
+            select: {
+                logo: true,
+                primaryColor: true,
+                settings: true,
+                notifications: true,
+                slug: true,
+                name: true,
+                area: true,
+                whatsapp: true
+            }
         });
 
         if (!company) return res.status(404).json({ error: 'Empresa não encontrada' });
@@ -23,13 +34,19 @@ exports.getSettings = async (req, res) => {
 exports.updateSettings = async (req, res) => {
     try {
         const { companyId } = req.user;
-        const { primaryColor, settings } = req.body;
+        const { primaryColor, settings, notifications, name, area, whatsapp } = req.body;
         // File from multer
         const logoFile = req.file;
 
         const updateData = {};
         if (primaryColor) updateData.primaryColor = primaryColor;
-        if (settings) updateData.settings = JSON.parse(settings); // Envia como string JSON do front
+        if (name) updateData.name = name;
+        if (area) updateData.area = area;
+        if (whatsapp) updateData.whatsapp = whatsapp;
+
+        // Handle JSON fields (FormData sends as strings)
+        if (settings) updateData.settings = typeof settings === 'string' ? JSON.parse(settings) : settings;
+        if (notifications) updateData.notifications = typeof notifications === 'string' ? JSON.parse(notifications) : notifications;
 
         if (logoFile) {
             // Save relative path
@@ -64,5 +81,58 @@ exports.getPublicSettings = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Erro ao buscar dados públicos' });
+    }
+};
+
+// --- USER MANAGEMENT ---
+
+// List Users
+exports.getUsers = async (req, res) => {
+    try {
+        const { companyId } = req.user;
+        const users = await prisma.user.findMany({
+            where: { companyId },
+            select: { id: true, name: true, email: true, role: true, active: true }
+        });
+        res.json(users);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Erro ao buscar usuários' });
+    }
+};
+
+// Invite/Create User
+exports.inviteUser = async (req, res) => {
+    try {
+        const { companyId } = req.user;
+        const { name, email, password, role } = req.body;
+
+        if (!email || !password || !name) {
+            return res.status(400).json({ error: 'Preencha todos os campos obrigatórios.' });
+        }
+
+        // Check if user exists
+        const existing = await prisma.user.findUnique({ where: { email } });
+        if (existing) {
+            return res.status(400).json({ error: 'E-mail já cadastrado.' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const newUser = await prisma.user.create({
+            data: {
+                name,
+                email,
+                password: hashedPassword,
+                role: role || 'gestor',
+                companyId
+            }
+        });
+
+        res.json({ message: 'Usuário criado com sucesso!', user: { id: newUser.id, name: newUser.name, email: newUser.email } });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Erro ao criar usuário' });
     }
 };

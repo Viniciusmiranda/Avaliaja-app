@@ -21,6 +21,10 @@ const upload = multer({ storage: storage });
 router.get('/settings', verifyToken, companyController.getSettings);
 router.put('/settings', verifyToken, upload.single('logo'), companyController.updateSettings);
 
+// User Management
+router.get('/users', verifyToken, companyController.getUsers);
+router.post('/users', verifyToken, companyController.inviteUser);
+
 // Public route for evaluation page
 router.get('/public/:slug', companyController.getPublicSettings);
 
