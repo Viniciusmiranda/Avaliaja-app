@@ -966,29 +966,60 @@
         <div id="view-ajustes" class="view-section" style="display: none;">
             <div style="max-width: 600px; margin: 0 auto;">
                 <section class="glass-panel" style="padding: 40px;">
-                    <h2 style="margin-bottom: 30px;">Dados da Empresa</h2>
+                    <div
+                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; margin-bottom: 40px;">
 
-                    <form onsubmit="saveAccountDetails(event)">
-                        <div style="margin-bottom: 20px;">
-                            <label style="display:block; margin-bottom: 10px;">Nome da Empresa</label>
-                            <input type="text" id="companyNameInput"
-                                style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: #fff;">
+                        <!-- PROFILE CARD -->
+                        <div class="glass-panel"
+                            style="padding: 30px; display: flex; flex-direction: column; align-items: center; text-align: center; border: 1px solid rgba(255,255,255,0.05);">
+                            <div
+                                style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-blue), var(--accent)); display: flex; align-items: center; justify-content: center; font-size: 2rem; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                                👤
+                            </div>
+                            <h3 id="profileNameDisplay" style="margin: 0; color: #fff;">Carregando...</h3>
+                            <p id="profileEmailDisplay"
+                                style="color: var(--text-muted); font-size: 0.9rem; margin: 5px 0 15px 0;">...</p>
+                            <span id="profileRoleBadge" class="badge"
+                                style="background: rgba(255,255,255,0.1); padding: 5px 12px;">Gestor</span>
                         </div>
 
-                        <div style="margin-bottom: 20px;">
-                            <label style="display:block; margin-bottom: 10px;">Ramo de Atuação (Área)</label>
-                            <select id="companyAreaInput"
-                                style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: #0a1628; color: #fff;">
-                                <option value="">Selecione...</option>
-                                <option value="varejo">Varejo / Loja</option>
-                                <option value="saude">Saúde / Clínica</option>
-                                <option value="servicos">Serviços</option>
-                                <option value="alimentacao">Alimentação</option>
-                            </select>
-                        </div>
+                        <!-- COMPANY FORM -->
+                        <form onsubmit="saveAccountDetails(event)"
+                            style="display: flex; flex-direction: column; gap: 20px;">
+                            <h3 style="margin: 0 0 10px 0;">🏢 Dados da Empresa</h3>
 
-                        <button type="submit" class="btn-glow">Atualizar Dados</button>
-                    </form>
+                            <div>
+                                <label style="display:block; margin-bottom: 8px; font-size: 0.9rem; color: #ccc;">Nome
+                                    Fantasia</label>
+                                <div
+                                    style="display: flex; align-items: center; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); padding: 0 15px;">
+                                    <span style="font-size: 1.2rem; opacity: 0.7;">🏷️</span>
+                                    <input type="text" id="companyNameInput" placeholder="Ex: Doce Sabor"
+                                        style="flex: 1; padding: 12px; border: none; background: transparent; color: #fff; outline: none;">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label
+                                    style="display:block; margin-bottom: 8px; font-size: 0.9rem; color: #ccc;">Segmento</label>
+                                <div
+                                    style="display: flex; align-items: center; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); padding: 0 15px;">
+                                    <span style="font-size: 1.2rem; opacity: 0.7;">📊</span>
+                                    <select id="companyAreaInput"
+                                        style="flex: 1; padding: 12px; border: none; background: transparent; color: #fff; outline: none; cursor: pointer;">
+                                        <option value="" style="background: #0a1628;">Selecione...</option>
+                                        <option value="varejo" style="background: #0a1628;">Varejo / Loja</option>
+                                        <option value="saude" style="background: #0a1628;">Saúde / Clínica</option>
+                                        <option value="servicos" style="background: #0a1628;">Serviços</option>
+                                        <option value="alimentacao" style="background: #0a1628;">Alimentação</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn-glow" style="align-self: flex-end;">💾 Salvar
+                                Dados</button>
+                        </form>
+                    </div>
 
                     <hr style="margin: 30px 0; border: 0; border-top: 1px solid rgba(255,255,255,0.1);">
 
