@@ -1,4 +1,4 @@
-# Histórico de Versões
+# Atualizações
 
 ## v2.2.45 (Atual)
 - **Novo Dashboard:** Layout modernizado com badges de plano.
