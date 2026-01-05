@@ -558,20 +558,65 @@
 
     // --- INIT ---
     // 1. Get Attendant Name & Company Slug from URL
-    // Format: /:slug/:attendant
     const pathParts = window.location.pathname.split('/');
-    // parts: ["", "slug", "attendant"]
     const slug = pathParts[1];
     let attName = pathParts[2];
 
-    if (slug && slug !== 'avaliar') { // Avoid conflict if old route used
+    // --- LOAD SETTINGS (NEW) ---
+    async function loadCompanySettings() {
+      try {
+        if (!slug || slug === 'avaliar') return;
+
+        // Public API to get settings
+        const res = await fetch(`/api/company/public/${slug}`);
+        if (res.ok) {
+          const data = await res.json();
+
+          // 1. Apply Settings
+          if (data.primaryColor) {
+            document.documentElement.style.setProperty('--accent-blue', data.primaryColor);
+            // Also adjust background gradient slightly if needed, or just buttons
+            const hex = data.primaryColor;
+            const bgGradient = `linear-gradient(135deg, ${hex} 0%, #000000 100%)`;
+            // document.body.style.background = bgGradient; // Optional: Override main BG
+          }
+
+          // 2. Apply UI Changes
+          if (data.logo) {
+            // Update all logo instances
+            document.querySelectorAll('.logo-top img').forEach(img => img.src = data.logo);
+          }
+
+          if (data.settings) {
+            const s = typeof data.settings === 'string' ? JSON.parse(data.settings) : data.settings;
+
+            if (s.questionTitle) {
+              document.querySelector('.rating-title').innerText = s.questionTitle;
+            }
+
+            // Show/Hide Observation
+            const obsContainer = document.getElementById('obsContainer');
+            if (s.showObservation === false) {
+              obsContainer.classList.add('hidden'); // Force hide via class
+              obsContainer.style.display = 'none';  // Inline safety
+            }
+          }
+        }
+      } catch (e) { console.error("Error loading settings", e); }
+    }
+
+    // Init Logic
+    if (slug && slug !== 'avaliar') {
       userContext.companySlug = slug;
+      loadCompanySettings(); // Call this immediately
+
       if (attName) {
         attName = decodeURIComponent(attName);
         userContext.attendant = attName;
         displayAttendant.innerText = "Atd. " + attName;
       }
     } else {
+      // Fallback logic...
       // Fallback or Legacy
       const params = new URLSearchParams(window.location.search);
       const pAtt = params.get('attendant');

@@ -20,9 +20,14 @@ const path = require('path');
 app.use(express.static(path.join(__dirname, '../frontend'), { index: false }));
 
 // Routes
-app.use('/api/auth', authRoutes);
+app.user('/api/auth', authRoutes);
 app.use('/api/avaliacoes', reviewRoutes);
 app.use('/api/atendentes', attendantRoutes);
+const companyRoutes = require('./src/routes/companyRoutes');
+app.use('/api/company', companyRoutes);
+
+// Serve Uploads
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 // Landing / Login / Register
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, '../frontend/index.html')));

@@ -37,7 +37,12 @@ model Company {
   active    Boolean  @default(true)
   users     User[]
   attendants Attendant[]
-  createdAt DateTime @default(now())
+  createdAt  DateTime    @default(now())
+
+  // Customization
+  logo         String?
+  primaryColor String?
+  settings     Json?      // Armazena config flexível (perguntas, ordem, etc)
 
   @@map("empresas")
 }

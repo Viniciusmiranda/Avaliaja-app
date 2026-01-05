@@ -533,18 +533,21 @@
             <a href="#" class="nav-item">
                 <span class="nav-icon">🎨</span>
                 Personalizar
-            </a>
-            <a href="#" class="nav-item">
                 <span class="nav-icon">🔌</span>
                 Integrações
+            </a>
+            <a href="#" class="nav-item" onclick="switchTab('ajustes', this)">
+                <span>⚙️</span> Ajustes
+            </a>
+            <a href="#" class="nav-item" onclick="switchTab('personalizacao', this)">
+                <span>🎨</span> Personalização
             </a>
             <a href="#" class="nav-item">
                 <span class="nav-icon">🎧</span>
                 Suporte
             </a>
-            <a href="#" class="nav-item" onclick="logout()" style="margin-top: auto; color: var(--danger);">
-                <span class="nav-icon">🚪</span>
-                Sair
+            <a href="#" class="nav-item" onclick="logout()" style="margin-top:auto; color: #ef4444;">
+                <span>🚪</span> Sair
             </a>
         </div>
     </nav>
@@ -743,12 +746,112 @@
             // Update Header
             const titleMap = {
                 'dashboard': 'Visão Geral',
+                'dashboard': 'Visão Geral',
                 'attendants': 'Gestão de Atendentes',
                 'reviews': 'Avaliações Detalhadas',
-                'export': 'Exportação'
+                'export': 'Exportação',
+                'personalizacao': 'Personalização',
+                'ajustes': 'Ajustes'
             };
-            document.getElementById('pageTitle').innerText = titleMap[viewName];
+            const title = titleMap[viewName] || 'Painel';
+            document.getElementById('pageTitle').innerText = title;
+
+            // Handle section visibility (Supports both ID formats: view-NAME or NAMESection)
+            document.querySelectorAll('.view-section, .content-section').forEach(el => el.style.display = 'none');
+
+            const viewId = document.getElementById(`view-${viewName}`);
+            const sectionId = document.getElementById(`${viewName}Section`);
+
+            if (viewId) viewId.style.display = 'block';
+            if (sectionId) sectionId.style.display = 'block';
         }
+
+        function switchTab(tabName, element) {
+            // Update Active Class
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            if (element) {
+                element.classList.add('active');
+            } else {
+                // Try to find by onclick
+                const found = document.querySelector(`.nav-item[onclick*="'${tabName}'"]`);
+                if (found) found.classList.add('active');
+            }
+
+            switchView(tabName);
+        }
+
+        // --- CUSTOMIZATION LOGIC ---
+        async function loadCustomization() {
+            try {
+                const res = await fetch('/api/company/settings', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+
+                    // Populate Fields
+                    if (data.primaryColor) document.getElementById('colorInput').value = data.primaryColor;
+
+                    if (data.settings) {
+                        const s = typeof data.settings === 'string' ? JSON.parse(data.settings) : data.settings;
+                        if (s.questionTitle) document.getElementById('questionTitleInput').value = s.questionTitle;
+                        if (s.showObservation !== undefined) document.getElementById('showObsInput').checked = s.showObservation;
+                    }
+
+                    if (data.logo) {
+                        document.getElementById('logoPreview').innerHTML = `<img src="${data.logo}" style="width:100%; height:100%; object-fit:contain;">`;
+                    }
+                }
+            } catch (e) { console.error("Error loading settings", e); }
+        }
+
+        async function saveCustomization(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            const originalText = btn.innerText;
+            btn.innerText = "Salvando...";
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('primaryColor', document.getElementById('colorInput').value);
+
+            const settings = {
+                questionTitle: document.getElementById('questionTitleInput').value,
+                showObservation: document.getElementById('showObsInput').checked
+            };
+            formData.append('settings', JSON.stringify(settings));
+
+            const logoFile = document.getElementById('logoInput').files[0];
+            if (logoFile) {
+                formData.append('logo', logoFile);
+            }
+
+            try {
+                const res = await fetch('/api/company/settings', {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}` }, // No Content-Type for FormData
+                    body: formData
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    alert('Alterações salvas com sucesso!');
+                    // Update preview immediately if logo changed
+                    if (data.company.logo) {
+                        document.getElementById('logoPreview').innerHTML = `<img src="${data.company.logo}" style="width:100%; height:100%; object-fit:contain;">`;
+                    }
+                } else {
+                    alert('Erro ao salvar.');
+                }
+            } catch (e) { console.error(e); }
+
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+
+        // --- INIT ---
+        loadDashboard();
+        loadCustomization(); // Fetch settings on load
 
         function logout() {
             localStorage.clear();
