@@ -2117,6 +2117,13 @@
                 const res = await fetch('/api/company/settings', { headers: { 'Authorization': `Bearer ${token}` } });
                 const data = await res.json();
 
+                // Profile
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                const pName = document.getElementById('profileNameDisplay');
+                const pEmail = document.getElementById('profileEmailDisplay');
+                if (pName) pName.innerText = user.name || 'Gestor';
+                if (pEmail) pEmail.innerText = user.email || '';
+
                 // Account
                 if (data.name) document.getElementById('companyNameInput').value = data.name;
                 if (data.area) document.getElementById('companyAreaInput').value = data.area;
