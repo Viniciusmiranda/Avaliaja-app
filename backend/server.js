@@ -25,8 +25,29 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 // Serve Frontend Static Files
-// Docker Volume Mounts ./frontend to /frontend
-const frontendPath = '/frontend';
+// Robust Path Detection
+let frontendPath = null;
+const possiblePaths = [
+    '/frontend', // Docker absolute volume
+    path.join(__dirname, '../frontend'), // Relative development
+    path.join(process.cwd(), 'frontend') // CWD fallback
+];
+
+for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+        frontendPath = p;
+        break;
+    }
+}
+
+if (!frontendPath) {
+    console.error("CRITICAL: Frontend folder not found in any expected location:", possiblePaths);
+    // Fallback to avoid crash, but will likely 404
+    frontendPath = path.join(__dirname, '../frontend');
+} else {
+    console.log(`Frontend served from: ${frontendPath}`);
+}
+
 app.use(express.static(frontendPath, { index: false }));
 
 // Routes
