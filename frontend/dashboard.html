@@ -1015,21 +1015,79 @@
         </div>
 
         <!-- VIEW: PERSONALIZAÇÃO -->
-        <!-- Preview Column (Smartphone) -->
-        <div style="flex: 1; min-width: 320px; display: flex; justify-content: center; align-items: flex-start;">
-            <div style="text-align: center;">
-                <span
-                    style="display: block; margin-bottom: 10px; color: var(--text-muted); font-size: 0.9rem;">Visualização
-                    em Tempo Real</span>
-                <!-- Smartphone Frame -->
-                <div class="smartphone-frame">
-                    <div class="notch"></div>
-                    <iframe id="previewIframe" src="ex-atd.html?preview=true" title="Preview"
-                        style="width: 100%; height: 100%; border: none;"></iframe>
+        <div id="view-personalizacao" class="view-section" style="display: none;">
+            <div style="display: flex; gap: 40px; flex-wrap: wrap; justify-content: center;">
+
+                <!-- Controls Column -->
+                <div style="flex: 1; min-width: 300px; max-width: 500px;">
+                    <section class="glass-panel" style="padding: 30px; margin-bottom: 20px;">
+                        <h2 style="margin-bottom: 20px;">Identidade Visual</h2>
+                        <p style="color: var(--text-muted); margin-bottom: 20px;">
+                            Customize a aparência em tempo real.
+                        </p>
+                        <form onsubmit="saveCustomization(event)" style="display: grid; gap: 20px;">
+                            <div>
+                                <label>Cor Principal</label>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <input type="color" id="colorInput" value="#4d4dff"
+                                        style="border: none; background: none; width: 50px; height: 50px; cursor: pointer;"
+                                        oninput="updatePreviewColor(this.value)">
+                                    <span style="font-size: 0.9rem; color: #ccc;">Clique para escolher</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label>Logotipo</label>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <label class="btn-glow"
+                                        style="margin: 0; cursor: pointer; display: inline-block; font-size: 0.9rem; padding: 10px 15px;">
+                                        Escolher Arquivo
+                                        <input type="file" id="logoInput" hidden accept="image/*"
+                                            onchange="updatePreviewLogo(this)">
+                                    </label>
+                                    <span style="font-size: 0.8rem; color: #aaa;">Max 2MB (PNG/JPG)</span>
+                                </div>
+                                <div id="logoPreviewContainer" style="margin-top: 10px; display: none;">
+                                    <img id="logoPreviewImg" src="" style="height: 40px; object-fit: contain;">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label>Título da Pergunta de Avaliação</label>
+                                <input type="text" id="questionTitleInput" class="input-light"
+                                    placeholder="Ex: Como foi sua experiência?"
+                                    style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: #fff;"
+                                    oninput="updatePreviewText(this.value)">
+                            </div>
+
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" id="showObsInput" checked
+                                    onchange="togglePreviewObs(this.checked)" style="width: 20px; height: 20px;">
+                                <label for="showObsInput" style="margin: 0;">Permitir comentários
+                                    (Observação)</label>
+                            </div>
+
+                            <button type="submit" class="btn-glow">💾 Salvar Alterações</button>
+                        </form>
+                    </section>
+                </div>
+
+                <!-- Preview Column (Smartphone) -->
+                <div
+                    style="flex: 1; min-width: 320px; display: flex; justify-content: center; align-items: flex-start;">
+                    <div style="text-align: center;">
+                        <span
+                            style="display: block; margin-bottom: 10px; color: var(--text-muted); font-size: 0.9rem;">Visualização
+                            em Tempo Real</span>
+                        <!-- Smartphone Frame -->
+                        <div class="smartphone-frame">
+                            <div class="notch"></div>
+                            <iframe id="previewIframe" src="ex-atd.html?preview=true" title="Preview"
+                                style="width: 100%; height: 100%; border: none;"></iframe>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-        </div>
         </div>
 
         <!-- VIEW: UPDATES (Moved outside) -->
