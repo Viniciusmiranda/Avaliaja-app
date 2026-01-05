@@ -20,7 +20,7 @@ const path = require('path');
 app.use(express.static(path.join(__dirname, '../frontend'), { index: false }));
 
 // Routes
-app.user('/api/auth', authRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/avaliacoes', reviewRoutes);
 app.use('/api/atendentes', attendantRoutes);
 const companyRoutes = require('./src/routes/companyRoutes');
