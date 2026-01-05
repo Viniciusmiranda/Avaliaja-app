@@ -13,8 +13,14 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- Marked.js (Markdown Parser) -->
+    <!-- Marked.js -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- html2pdf.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <!-- Favicon -->
+    <link rel="icon" href="icon.ico" type="image/x-icon">
 
     <style>
         :root {
@@ -658,6 +664,20 @@
                 <p id="pageSubtitle">Bem-vindo(a), Gestor. Aqui estão os resultados em tempo real.</p>
             </div>
             <div class="header-actions">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="date" id="dateStart" class="glass-panel"
+                        style="padding: 10px; color: #fff; border: 1px solid rgba(255,255,255,0.2); outline: none;"
+                        onchange="filterDashboardByDate()">
+                    <span style="color: var(--text-muted);">até</span>
+                    <input type="date" id="dateEnd" class="glass-panel"
+                        style="padding: 10px; color: #fff; border: 1px solid rgba(255,255,255,0.2); outline: none;"
+                        onchange="filterDashboardByDate()">
+                </div>
+
+                <button class="btn-glow" onclick="exportDashboardPDF()" style="background: var(--danger);">
+                    📄 PDF
+                </button>
+
                 <button class="btn-glow" onclick="openAttendantModal()">
                     + Novo Atendente
                 </button>
@@ -995,80 +1015,59 @@
         </div>
 
         <!-- VIEW: PERSONALIZAÇÃO -->
-        <div id="view-personalizacao" class="view-section" style="display: none;">
-            <div style="display: flex; gap: 40px; flex-wrap: wrap; justify-content: center;">
-
-                <!-- Controls Column -->
-                <div style="flex: 1; min-width: 300px; max-width: 500px;">
-                    <section class="glass-panel" style="padding: 30px; margin-bottom: 20px;">
-                        <h2 style="margin-bottom: 20px;">Identidade Visual</h2>
-                        <p style="color: var(--text-muted); margin-bottom: 20px;">
-                            Customize a aparência em tempo real.
-                        </p>
-                        <form onsubmit="saveCustomization(event)" style="display: grid; gap: 20px;">
-                            <div>
-                                <label>Cor Principal</label>
-                                <div style="display: flex; gap: 10px; align-items: center;">
-                                    <input type="color" id="colorInput" value="#4d4dff"
-                                        style="border: none; background: none; width: 50px; height: 50px; cursor: pointer;"
-                                        oninput="updatePreviewColor(this.value)">
-                                    <span style="font-size: 0.9rem; color: #ccc;">Clique para escolher</span>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label>Logotipo</label>
-                                <div style="display: flex; gap: 10px; align-items: center;">
-                                    <label class="btn-glow"
-                                        style="margin: 0; cursor: pointer; display: inline-block; font-size: 0.9rem; padding: 10px 15px;">
-                                        Escolher Arquivo
-                                        <input type="file" id="logoInput" hidden accept="image/*"
-                                            onchange="updatePreviewLogo(this)">
-                                    </label>
-                                    <span style="font-size: 0.8rem; color: #aaa;">Max 2MB (PNG/JPG)</span>
-                                </div>
-                                <div id="logoPreviewContainer" style="margin-top: 10px; display: none;">
-                                    <img id="logoPreviewImg" src="" style="height: 40px; object-fit: contain;">
-                                </div>
-                            </div>
-
-                            <div>
-                                <label>Título da Pergunta de Avaliação</label>
-                                <input type="text" id="questionTitleInput" class="input-light"
-                                    placeholder="Ex: Como foi sua experiência?"
-                                    style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: #fff;"
-                                    oninput="updatePreviewText(this.value)">
-                            </div>
-
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <input type="checkbox" id="showObsInput" checked
-                                    onchange="togglePreviewObs(this.checked)" style="width: 20px; height: 20px;">
-                                <label for="showObsInput" style="margin: 0;">Permitir comentários
-                                    (Observação)</label>
-                            </div>
-
-                            <button type="submit" class="btn-glow">💾 Salvar Alterações</button>
-                        </form>
-                    </section>
-                </div>
-
-                <!-- Preview Column (Smartphone) -->
-                <div
-                    style="flex: 1; min-width: 320px; display: flex; justify-content: center; align-items: flex-start;">
-                    <div style="text-align: center;">
-                        <span
-                            style="display: block; margin-bottom: 10px; color: var(--text-muted); font-size: 0.9rem;">Visualização
-                            em Tempo Real</span>
-                        <!-- Smartphone Frame -->
-                        <div class="smartphone-frame">
-                            <div class="notch"></div>
-                            <!-- Embed ex-atd.html in preview mode -->
-                            <iframe id="previewIframe" src="ex-atd.html?preview=true" title="Preview"
-                                style="width: 100%; height: 100%; border: none;"></iframe>
-                        </div>
-                    </div>
+        <!-- Preview Column (Smartphone) -->
+        <div style="flex: 1; min-width: 320px; display: flex; justify-content: center; align-items: flex-start;">
+            <div style="text-align: center;">
+                <span
+                    style="display: block; margin-bottom: 10px; color: var(--text-muted); font-size: 0.9rem;">Visualização
+                    em Tempo Real</span>
+                <!-- Smartphone Frame -->
+                <div class="smartphone-frame">
+                    <div class="notch"></div>
+                    <iframe id="previewIframe" src="ex-atd.html?preview=true" title="Preview"
+                        style="width: 100%; height: 100%; border: none;"></iframe>
                 </div>
             </div>
+        </div>
+        </div>
+        </div>
+
+        <!-- VIEW: UPDATES (Moved outside) -->
+        <div id="view-updates" class="view-section" style="display: none;">
+            <section class="glass-panel" style="padding: 40px; max-width: 800px; margin: 0 auto;">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 30px;">
+                    <div style="font-size: 2rem;">🚀</div>
+                    <div>
+                        <h2 style="margin: 0;">Novidades e Atualizações</h2>
+                        <p style="color: var(--text-muted);">Confira o que há de novo no Avalia Já.</p>
+                    </div>
+                </div>
+                <div id="changelogContent" style="line-height: 1.6; color: #e2e8f0;">
+                    Carregando histórico...
+                </div>
+            </section>
+        </div>
+
+        </form>
+        </section>
+        </div>
+
+        <!-- Preview Column (Smartphone) -->
+        <div style="flex: 1; min-width: 320px; display: flex; justify-content: center; align-items: flex-start;">
+            <div style="text-align: center;">
+                <span
+                    style="display: block; margin-bottom: 10px; color: var(--text-muted); font-size: 0.9rem;">Visualização
+                    em Tempo Real</span>
+                <!-- Smartphone Frame -->
+                <div class="smartphone-frame">
+                    <div class="notch"></div>
+                    <!-- Embed ex-atd.html in preview mode -->
+                    <iframe id="previewIframe" src="ex-atd.html?preview=true" title="Preview"
+                        style="width: 100%; height: 100%; border: none;"></iframe>
+                </div>
+            </div>
+        </div>
+        </div>
         </div>
 
         <!-- VIEW: UPDATES (New) -->
@@ -1812,6 +1811,158 @@
                         </tr>
                     `;
                 });
+            } catch (e) { console.error(e); }
+        }
+
+        function openUserModal() {
+            document.getElementById('userModal').classList.add('active');
+        }
+
+        async function handleInviteUser(e) {
+            e.preventDefault();
+            const form = e.target;
+            const data = {
+                name: form.name.value,
+                email: form.email.value,
+                password: form.password.value
+            };
+
+            try {
+                const res = await fetch('/api/company/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(data)
+                });
+                if (res.ok) {
+                    alert('Usuário convidado!');
+                    document.getElementById('userModal').classList.remove('active');
+                    loadUsers();
+                    form.reset();
+                } else {
+                    alert('Erro ao convidar');
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function saveIntegrations(e) {
+            e.preventDefault();
+            const whatsappRaw = document.getElementById('whatsappInput').value;
+            // Split comma, trim
+            const whatsappNumbers = whatsappRaw.split(',').map(s => s.trim()).filter(s => s);
+
+            const notificationRule = document.getElementById('notifyRuleInput').value;
+
+            try {
+                const res = await fetch('/api/company/settings', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({
+                        whatsapp: whatsappNumbers[0] || "", // Primary
+                        notifications: JSON.stringify({
+                            whatsappRule: notificationRule,
+                            whatsappNumbers: whatsappNumbers // Save array
+                        })
+                    })
+                });
+                if (res.ok) alert('Integrações salvas!');
+            } catch (e) { console.error(e); }
+        }
+
+        async function saveAccountDetails(e) {
+            e.preventDefault();
+            const name = document.getElementById('companyNameInput').value;
+            const area = document.getElementById('companyAreaInput').value;
+
+            try {
+                const res = await fetch('/api/company/settings', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ name, area })
+                });
+                if (res.ok) alert('Dados salvos!');
+            } catch (e) { console.error(e); }
+        }
+
+        // --- DATE FILTER & PDF LOGIC ---
+
+        function filterDashboardByDate() {
+            const startInput = document.getElementById('dateStart').value;
+            const endInput = document.getElementById('dateEnd').value;
+
+            if (!globalData.originalReviews) {
+                // Keep backup of originals on first run
+                globalData.originalReviews = [...globalData.reviews];
+            }
+
+            let filtered = [...globalData.originalReviews];
+
+            if (startInput) {
+                const start = new Date(startInput);
+                filtered = filtered.filter(r => new Date(r.createdAt) >= start);
+            }
+            if (endInput) {
+                const end = new Date(endInput);
+                end.setHours(23, 59, 59); // End of day
+                filtered = filtered.filter(r => new Date(r.createdAt) <= end);
+            }
+
+            // Recalculate Metrics
+            const total = filtered.length;
+            const avg = total > 0 ? (filtered.reduce((acc, r) => acc + r.stars, 0) / total) : 0;
+
+            // NPS Calculation
+            const promoters = filtered.filter(r => r.stars >= 5).length;
+            const detractors = filtered.filter(r => r.stars <= 3).length;
+            const nps = total > 0 ? Math.round(((promoters - detractors) / total) * 100) : 0;
+
+            // Update UI
+            renderMetrics({
+                average: avg,
+                total: total,
+                nps: nps,
+                activeAttendants: globalData.metrics.activeAttendants // Keep static
+            });
+
+            // Update Global for other renders
+            globalData.reviews = filtered;
+
+            // Recalc chart data (mock reconstruction)
+            // Ideally we'd re-aggregate by attendant, but for now we rely on review attendant data
+            const attMap = {};
+            filtered.forEach(r => {
+                const name = r.attendant ? r.attendant.name : 'Geral';
+                if (!attMap[name]) attMap[name] = 0;
+                attMap[name]++;
+            });
+            // Rebuild mock attendant object for chart
+            const mockAttendants = Object.keys(attMap).map(name => ({
+                name: name,
+                _count: { reviews: attMap[name] }
+            }));
+
+            renderCharts(mockAttendants); // This replots Main Chart
+            renderRecentReviews(filtered.slice(0, 30));
+        }
+
+        function exportDashboardPDF() {
+            const element = document.getElementById('view-dashboard');
+            const opt = {
+                margin: 0.5,
+                filename: 'Relatorio_AvaliaJa.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+
+            // Hide buttons for cleaner PDF
+            const buttons = element.querySelectorAll('button');
+            buttons.forEach(b => b.style.display = 'none');
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                // Restore buttons
+                buttons.forEach(b => b.style.display = 'block');
+            });
+        }
             } catch (e) { console.error(e); }
         }
 
