@@ -548,7 +548,34 @@
                 flex-wrap: wrap;
             }
         }
+
+        /* SMARTPHONE MOCKUP FRAME */
+        .smartphone-frame {
+            width: 300px;
+            height: 600px;
+            background: #000;
+            border-radius: 40px;
+            border: 12px solid #333;
+            position: relative;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+            overflow: hidden;
+            margin: 0 auto;
+        }
+
+        .smartphone-frame .notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 25px;
+            background: #000;
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+            z-index: 10;
+        }
     </style>
+
 </head>
 
 <body>
@@ -823,208 +850,244 @@
             </section>
         </div>
 
-        <!-- VIEW: INTEGRACOES -->
+        <!-- VIEW: INTEGRACOES (REFACTORED) -->
         <div id="view-integracoes" class="view-section" style="display: none;">
             <h2 style="margin-bottom: 20px;">Conecte seus Apps</h2>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;">
-                <!-- WhatsApp Card -->
-                <div class="glass-panel" style="padding: 30px; position: relative; overflow: hidden;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 30px;">
+
+                <!-- CARD: WhatsApp -->
+                <article class="glass-panel"
+                    style="padding: 30px; position: relative; overflow: hidden; display: flex; flex-direction: column;">
                     <div
-                        style="position: absolute; top: -10px; right: -10px; font-size: 5rem; opacity: 0.1; color: #25D366;">
-                        <span style="font-family: sans-serif;">WhatsApp</span>
+                        style="position: absolute; top: -10px; right: -10px; font-size: 5rem; opacity: 0.1; color: #25D366; z-index: 0;">
+                        <i class="fab fa-whatsapp"></i> <!-- FontAwesome placeholder if available, else just icon -->
+                        WA
                     </div>
 
-                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                    <div style="position: relative; z-index: 1;">
                         <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
-                            <img src="whatsapp.png" alt="WhatsApp"
+                            <img src="whatsapp.png" alt="WhatsApp Logo"
                                 style="width: 50px; height: 50px; object-fit: contain;">
                             <div>
-                                <h3 style="margin-bottom: 5px;">Notificações WhatsApp</h3>
-                                <p style="color: var(--text-muted); font-size: 0.9rem;">Receba alertas de novas
-                                    avaliações.
-                                </p>
+                                <h3 style="margin: 0; color: #fff;">WhatsApp</h3>
+                                <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">Notificações
+                                    automáticas</p>
                             </div>
                         </div>
 
                         <form onsubmit="saveIntegrations(event)">
-                            <div style="margin-bottom: 20px;">
-                                <label style="display:block; margin-bottom: 10px; font-size: 0.9rem;">Número do WhatsApp
+                            <div style="margin-bottom: 15px;">
+                                <label
+                                    style="display:block; margin-bottom: 8px; font-size: 0.85rem; color: #ccc;">Número
                                     (com DDD)</label>
                                 <input type="text" id="whatsappInput" placeholder="Ex: 5511999999999"
-                                    style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: #fff;">
+                                    style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.4); color: #fff;">
+                                <p style="font-size: 0.75rem; color: #666; margin-top: 5px;">Separe múltiplos números
+                                    por vírgula.</p>
                             </div>
 
-                            <div style="margin-bottom: 25px;">
-                                <label style="display:block; margin-bottom: 10px; font-size: 0.9rem;">Quando
-                                    notificar?</label>
+                            <div style="margin-bottom: 20px;">
+                                <label style="display:block; margin-bottom: 8px; font-size: 0.85rem; color: #ccc;">Regra
+                                    de Disparo</label>
                                 <select id="notifyRuleInput"
                                     style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: #0a1628; color: #fff;">
-                                    <option value="all">Todas as avaliações</option>
-                                    <option value="bad">Apenas notas baixas (1 e 2 estrelas)</option>
-                                    <option value="off">Desativado</option>
+                                    <option value="all">🔔 Todas as avaliações</option>
+                                    <option value="bad">⚠️ Apenas notas baixas (1-2)</option>
+                                    <option value="off">🔕 Desativado</option>
                                 </select>
                             </div>
 
-                            <button type="submit" class="btn-glow" style="width: 100%; justify-content: center;">Salvar
-                                Configuração</button>
+                            <button type="submit" class="btn-glow"
+                                style="width: 100%; justify-content: center; background: #25D366;">
+                                Salvar WhatsApp
+                            </button>
                         </form>
                     </div>
+                </article>
 
-                    <!-- Placeholder for future -->
-                    <div class="glass-panel" style="padding: 30px; opacity: 0.5; filter: grayscale(1);">
-                        <h3 style="margin-bottom: 10px;">Slack / E-mail</h3>
-                        <p>Em breve...</p>
+                <!-- CARD: N8N (Webhook) -->
+                <article class="glass-panel" style="padding: 30px; opacity: 0.8;">
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                        <div
+                            style="width: 50px; height: 50px; background: #ea4b71; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem;">
+                            n8n</div>
+                        <div>
+                            <h3 style="margin: 0; color: #fff;">Webhook (N8N)</h3>
+                            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">Automação de workflows
+                            </p>
+                        </div>
                     </div>
-                </div>
+                    <p style="font-size: 0.9rem; color: #ccc; margin-bottom: 20px;">
+                        Dispara um POST JSON para cada avaliação recebida. Configure a URL nas configurações avançadas.
+                    </p>
+                    <button class="btn-glow"
+                        style="background: rgba(255,255,255,0.1); width: 100%; justify-content: center;" disabled>
+                        Configurar (Em Breve)
+                    </button>
+                </article>
+
+                <!-- CARD: Email -->
+                <article class="glass-panel" style="padding: 30px; opacity: 0.5;">
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                        <span style="font-size: 2.5rem;">📧</span>
+                        <div>
+                            <h3 style="margin: 0; color: #fff;">E-mail</h3>
+                            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">Relatórios diários</p>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.9rem; color: #ccc;">Em breve disponível nos planos Enterprise.</p>
+                </article>
+
             </div>
+        </div>
 
-            <!-- VIEW: MINHA CONTA (Antigo Ajustes) -->
-            <div id="view-ajustes" class="view-section" style="display: none;">
-                <div style="max-width: 600px; margin: 0 auto;">
-                    <section class="glass-panel" style="padding: 40px;">
-                        <h2 style="margin-bottom: 30px;">Dados da Empresa</h2>
+        <!-- VIEW: MINHA CONTA (Antigo Ajustes) -->
+        <div id="view-ajustes" class="view-section" style="display: none;">
+            <div style="max-width: 600px; margin: 0 auto;">
+                <section class="glass-panel" style="padding: 40px;">
+                    <h2 style="margin-bottom: 30px;">Dados da Empresa</h2>
 
-                        <form onsubmit="saveAccountDetails(event)">
-                            <div style="margin-bottom: 20px;">
-                                <label style="display:block; margin-bottom: 10px;">Nome da Empresa</label>
-                                <input type="text" id="companyNameInput"
-                                    style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: #fff;">
+                    <form onsubmit="saveAccountDetails(event)">
+                        <div style="margin-bottom: 20px;">
+                            <label style="display:block; margin-bottom: 10px;">Nome da Empresa</label>
+                            <input type="text" id="companyNameInput"
+                                style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: #fff;">
+                        </div>
+
+                        <div style="margin-bottom: 20px;">
+                            <label style="display:block; margin-bottom: 10px;">Ramo de Atuação (Área)</label>
+                            <select id="companyAreaInput"
+                                style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: #0a1628; color: #fff;">
+                                <option value="">Selecione...</option>
+                                <option value="varejo">Varejo / Loja</option>
+                                <option value="saude">Saúde / Clínica</option>
+                                <option value="servicos">Serviços</option>
+                                <option value="alimentacao">Alimentação</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn-glow">Atualizar Dados</button>
+                    </form>
+
+                    <hr style="margin: 30px 0; border: 0; border-top: 1px solid rgba(255,255,255,0.1);">
+
+                    <h3 style="margin-bottom: 20px; color: var(--danger);">Zona de Perigo</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 15px;">Ações sensíveis
+                        relacionadas a sua conta.</p>
+                    <button
+                        style="border: 1px solid var(--danger); background: transparent; color: var(--danger); padding: 10px 20px; border-radius: 8px; cursor: pointer;">Alterar
+                        Senha de Acesso</button>
+                </section>
+            </div>
+        </div>
+
+        <!-- VIEW: SUPORTE -->
+        <div id="view-suporte" class="view-section" style="display: none;">
+            <section class="glass-panel" style="padding: 40px; text-align: center;">
+                <h2 style="margin-bottom: 20px;">Precisa de Ajuda?</h2>
+                <p class="text-muted">Entre em contato: suporte@avaliaja.app.br</p>
+                <a href="https://wa.me/5511999999999" target="_blank" class="btn-glow"
+                    style="display: inline-flex; margin-top: 20px; text-decoration: none;">
+                    Falar no WhatsApp
+                </a>
+            </section>
+        </div>
+
+        <!-- VIEW: PERSONALIZAÇÃO -->
+        <div id="view-personalizacao" class="view-section" style="display: none;">
+            <div style="display: flex; gap: 40px; flex-wrap: wrap; justify-content: center;">
+
+                <!-- Controls Column -->
+                <div style="flex: 1; min-width: 300px; max-width: 500px;">
+                    <section class="glass-panel" style="padding: 30px; margin-bottom: 20px;">
+                        <h2 style="margin-bottom: 20px;">Identidade Visual</h2>
+                        <p style="color: var(--text-muted); margin-bottom: 20px;">
+                            Customize a aparência em tempo real.
+                        </p>
+                        <form onsubmit="saveCustomization(event)" style="display: grid; gap: 20px;">
+                            <div>
+                                <label>Cor Principal</label>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <input type="color" id="colorInput" value="#4d4dff"
+                                        style="border: none; background: none; width: 50px; height: 50px; cursor: pointer;"
+                                        oninput="updatePreviewColor(this.value)">
+                                    <span style="font-size: 0.9rem; color: #ccc;">Clique para escolher</span>
+                                </div>
                             </div>
 
-                            <div style="margin-bottom: 20px;">
-                                <label style="display:block; margin-bottom: 10px;">Ramo de Atuação (Área)</label>
-                                <select id="companyAreaInput"
-                                    style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: #0a1628; color: #fff;">
-                                    <option value="">Selecione...</option>
-                                    <option value="varejo">Varejo / Loja</option>
-                                    <option value="saude">Saúde / Clínica</option>
-                                    <option value="servicos">Serviços</option>
-                                    <option value="alimentacao">Alimentação</option>
-                                </select>
+                            <div>
+                                <label>Logotipo</label>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <label class="btn-glow"
+                                        style="margin: 0; cursor: pointer; display: inline-block; font-size: 0.9rem; padding: 10px 15px;">
+                                        Escolher Arquivo
+                                        <input type="file" id="logoInput" hidden accept="image/*"
+                                            onchange="updatePreviewLogo(this)">
+                                    </label>
+                                    <span style="font-size: 0.8rem; color: #aaa;">Max 2MB (PNG/JPG)</span>
+                                </div>
+                                <div id="logoPreviewContainer" style="margin-top: 10px; display: none;">
+                                    <img id="logoPreviewImg" src="" style="height: 40px; object-fit: contain;">
+                                </div>
                             </div>
 
-                            <button type="submit" class="btn-glow">Atualizar Dados</button>
+                            <div>
+                                <label>Título da Pergunta de Avaliação</label>
+                                <input type="text" id="questionTitleInput" class="input-light"
+                                    placeholder="Ex: Como foi sua experiência?"
+                                    style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: #fff;"
+                                    oninput="updatePreviewText(this.value)">
+                            </div>
+
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" id="showObsInput" checked
+                                    onchange="togglePreviewObs(this.checked)" style="width: 20px; height: 20px;">
+                                <label for="showObsInput" style="margin: 0;">Permitir comentários
+                                    (Observação)</label>
+                            </div>
+
+                            <button type="submit" class="btn-glow">💾 Salvar Alterações</button>
                         </form>
-
-                        <hr style="margin: 30px 0; border: 0; border-top: 1px solid rgba(255,255,255,0.1);">
-
-                        <h3 style="margin-bottom: 20px; color: var(--danger);">Zona de Perigo</h3>
-                        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 15px;">Ações sensíveis
-                            relacionadas a sua conta.</p>
-                        <button
-                            style="border: 1px solid var(--danger); background: transparent; color: var(--danger); padding: 10px 20px; border-radius: 8px; cursor: pointer;">Alterar
-                            Senha de Acesso</button>
                     </section>
                 </div>
-            </div>
 
-            <!-- VIEW: SUPORTE -->
-            <div id="view-suporte" class="view-section" style="display: none;">
-                <section class="glass-panel" style="padding: 40px; text-align: center;">
-                    <h2 style="margin-bottom: 20px;">Precisa de Ajuda?</h2>
-                    <p class="text-muted">Entre em contato: suporte@avaliaja.app.br</p>
-                    <a href="https://wa.me/5511999999999" target="_blank" class="btn-glow"
-                        style="display: inline-flex; margin-top: 20px; text-decoration: none;">
-                        Falar no WhatsApp
-                    </a>
-                </section>
-            </div>
-
-            <!-- VIEW: PERSONALIZAÇÃO -->
-            <div id="view-personalizacao" class="view-section" style="display: none;">
-                <div style="display: flex; gap: 40px; flex-wrap: wrap; justify-content: center;">
-
-                    <!-- Controls Column -->
-                    <div style="flex: 1; min-width: 300px; max-width: 500px;">
-                        <section class="glass-panel" style="padding: 30px; margin-bottom: 20px;">
-                            <h2 style="margin-bottom: 20px;">Identidade Visual</h2>
-                            <p style="color: var(--text-muted); margin-bottom: 20px;">
-                                Customize a aparência em tempo real.
-                            </p>
-                            <form onsubmit="saveCustomization(event)" style="display: grid; gap: 20px;">
-                                <div>
-                                    <label>Cor Principal</label>
-                                    <div style="display: flex; gap: 10px; align-items: center;">
-                                        <input type="color" id="colorInput" value="#4d4dff"
-                                            style="border: none; background: none; width: 50px; height: 50px; cursor: pointer;"
-                                            oninput="updatePreviewColor(this.value)">
-                                        <span style="font-size: 0.9rem; color: #ccc;">Clique para escolher</span>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label>Logotipo</label>
-                                    <div style="display: flex; gap: 10px; align-items: center;">
-                                        <label class="btn-glow"
-                                            style="margin: 0; cursor: pointer; display: inline-block; font-size: 0.9rem; padding: 10px 15px;">
-                                            Escolher Arquivo
-                                            <input type="file" id="logoInput" hidden accept="image/*"
-                                                onchange="updatePreviewLogo(this)">
-                                        </label>
-                                        <span style="font-size: 0.8rem; color: #aaa;">Max 2MB (PNG/JPG)</span>
-                                    </div>
-                                    <div id="logoPreviewContainer" style="margin-top: 10px; display: none;">
-                                        <img id="logoPreviewImg" src="" style="height: 40px; object-fit: contain;">
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label>Título da Pergunta de Avaliação</label>
-                                    <input type="text" id="questionTitleInput" class="input-light"
-                                        placeholder="Ex: Como foi sua experiência?"
-                                        style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: #fff;"
-                                        oninput="updatePreviewText(this.value)">
-                                </div>
-
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <input type="checkbox" id="showObsInput" checked
-                                        onchange="togglePreviewObs(this.checked)" style="width: 20px; height: 20px;">
-                                    <label for="showObsInput" style="margin: 0;">Permitir comentários
-                                        (Observação)</label>
-                                </div>
-
-                                <button type="submit" class="btn-glow">💾 Salvar Alterações</button>
-                            </form>
-                        </section>
-                    </div>
-
-                    <!-- Preview Column (Smartphone) -->
-                    <div
-                        style="flex: 1; min-width: 320px; display: flex; justify-content: center; align-items: flex-start;">
-                        <div style="text-align: center;">
-                            <span
-                                style="display: block; margin-bottom: 10px; color: var(--text-muted); font-size: 0.9rem;">Visualização
-                                em Tempo Real</span>
-                            <!-- Smartphone Frame -->
-                            <div class="smartphone-frame">
-                                <div class="notch"></div>
-                                <!-- Embed ex-atd.html in preview mode -->
-                                <iframe id="previewIframe" src="ex-atd.html?preview=true" title="Preview"
-                                    style="width: 100%; height: 100%; border: none;"></iframe>
-                            </div>
+                <!-- Preview Column (Smartphone) -->
+                <div
+                    style="flex: 1; min-width: 320px; display: flex; justify-content: center; align-items: flex-start;">
+                    <div style="text-align: center;">
+                        <span
+                            style="display: block; margin-bottom: 10px; color: var(--text-muted); font-size: 0.9rem;">Visualização
+                            em Tempo Real</span>
+                        <!-- Smartphone Frame -->
+                        <div class="smartphone-frame">
+                            <div class="notch"></div>
+                            <!-- Embed ex-atd.html in preview mode -->
+                            <iframe id="previewIframe" src="ex-atd.html?preview=true" title="Preview"
+                                style="width: 100%; height: 100%; border: none;"></iframe>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- VIEW: UPDATES (New) -->
-            <div id="view-updates" class="view-section" style="display: none;">
-                <section class="glass-panel" style="padding: 40px; max-width: 800px; margin: 0 auto;">
-                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 30px;">
-                        <div style="font-size: 2rem;">🚀</div>
-                        <div>
-                            <h2 style="margin: 0;">Novidades e Atualizações</h2>
-                            <p style="color: var(--text-muted);">Confira o que há de novo no Avalia Já.</p>
-                        </div>
+        <!-- VIEW: UPDATES (New) -->
+        <div id="view-updates" class="view-section" style="display: none;">
+            <section class="glass-panel" style="padding: 40px; max-width: 800px; margin: 0 auto;">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 30px;">
+                    <div style="font-size: 2rem;">🚀</div>
+                    <div>
+                        <h2 style="margin: 0;">Novidades e Atualizações</h2>
+                        <p style="color: var(--text-muted);">Confira o que há de novo no Avalia Já.</p>
                     </div>
-                    <div id="changelogContent" style="line-height: 1.6; color: #e2e8f0;">
-                        Carregando histórico...
-                    </div>
-                </section>
-            </div>
-
+                </div>
+                <div id="changelogContent" style="line-height: 1.6; color: #e2e8f0;">
+                    Carregando histórico...
+                </div>
             </section>
+        </div>
+
+        </section>
         </div>
         </div>
 
@@ -1720,14 +1783,32 @@
                 const users = await res.json();
                 const tbody = document.getElementById('usersTableBody');
                 tbody.innerHTML = '';
-                users.forEach(u => {
+
+                // Ensure current user is in the list
+                const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+                const hasCurrent = users.find(u => u.email === currentUser.email);
+
+                let displayUsers = [...users];
+                if (currentUser.email && !hasCurrent) {
+                    displayUsers.unshift({
+                        name: currentUser.name + ' (Você)',
+                        email: currentUser.email,
+                        role: 'admin', // Assume admin
+                        isSelf: true
+                    });
+                }
+
+                displayUsers.forEach(u => {
+                    const isSelf = u.email === currentUser.email || u.isSelf;
                     tbody.innerHTML += `
                         <tr>
-                            <td>${u.name}</td>
+                            <td>${u.name} ${isSelf ? '<span class="badge" style="background:var(--accent); font-size:0.7em;">VOCÊ</span>' : ''}</td>
                             <td>${u.email}</td>
-                            <td><span class="badge" style="background: rgba(255,255,255,0.1);">${u.role}</span></td>
+                            <td><span class="badge" style="background: rgba(255,255,255,0.1);">${u.role || 'user'}</span></td>
                             <td><span style="color: var(--success);">Ativo</span></td>
-                            <td><button style="border:none; background:none; cursor:pointer;" title="Remover">❌</button></td>
+                            <td>
+                                ${!isSelf ? '<button onclick="alert(\'Ação restrita.\')" style="border:none; background:none; cursor:pointer;" title="Remover">❌</button>' : ''}
+                            </td>
                         </tr>
                     `;
                 });
