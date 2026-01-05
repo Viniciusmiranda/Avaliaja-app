@@ -608,7 +608,12 @@
             <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
 
             <div class="page-title">
-                <h1 id="pageTitle">Visão Geral</h1>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <h1 id="pageTitle">Visão Geral</h1>
+                    <span id="planBadge" class="badge"
+                        style="background: var(--gold); color: #000; font-weight: bold; display: none;">PLANO
+                        GRATIS</span>
+                </div>
                 <p id="pageSubtitle">Bem-vindo(a), Gestor. Aqui estão os resultados em tempo real.</p>
             </div>
             <div class="header-actions">
@@ -1184,6 +1189,70 @@
             btn.disabled = false;
         }
 
+        // --- NEW HELPER FUNCTIONS ---
+        function checkPlanLimits(plan, count) {
+            const limits = { 'GRATIS': 5, 'PEQUENAS': 20, 'GRANDES': Infinity };
+            const limit = limits[plan] || 5;
+            const btn = document.querySelector('button[onclick="openAttendantModal()"]');
+
+            if (btn) {
+                if (count >= limit) {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                    btn.title = "Limite do plano atingido";
+                } else {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.title = "";
+                }
+            }
+        }
+
+        function renderRecentReviews(reviews) {
+            const tbody = document.getElementById('recentReviewsBody');
+            if (!tbody) return;
+
+            if (globalData.reviewsPage === 1) tbody.innerHTML = '';
+
+            reviews.forEach(item => {
+                const tr = document.createElement('tr');
+                const starsHtml = '★'.repeat(item.stars) + '☆'.repeat(5 - item.stars);
+                const attName = item.attendant ? item.attendant.name : 'Geral';
+                const date = new Date(item.createdAt).toLocaleDateString();
+
+                tr.innerHTML = `
+                    <td><span class="badge badge-attendant">${attName}</span></td>
+                    <td>${date}</td>
+                    <td><span class="stars-display">${starsHtml}</span></td>
+                    <td>${item.comment || '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function loadMoreReviews() {
+            const btn = document.getElementById('btnLoadMore');
+            if (btn) btn.innerText = "Carregando...";
+            globalData.reviewsPage = (globalData.reviewsPage || 1) + 1;
+
+            try {
+                const res = await fetch(`/api/avaliacoes/list?page=${globalData.reviewsPage}&limit=30`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const newReviews = await res.json();
+
+                if (newReviews.length > 0) {
+                    renderRecentReviews(newReviews);
+                    if (btn) btn.innerText = "Carregar Mais...";
+                } else {
+                    if (btn) {
+                        btn.innerText = "Fim das avaliações.";
+                        btn.disabled = true;
+                    }
+                }
+            } catch (e) { console.error(e); }
+        }
+
         // --- INIT ---
         loadDashboard();
         loadCustomization(); // Fetch settings on load
@@ -1203,7 +1272,14 @@
                 if (!res.ok) throw new Error("Falha API");
 
                 const data = await res.json();
-                globalData = data; // Store globally
+                globalData = { ...globalData, ...data, reviewsPage: 1 }; // Reset page
+
+                // PLAN BADGE
+                const planBadge = document.getElementById('planBadge');
+                if (planBadge) {
+                    planBadge.innerText = `PLANO ${data.plan || 'GRATIS'}`;
+                    planBadge.style.display = 'inline-block';
+                }
 
                 // Update Header Texts
                 const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -1214,11 +1290,14 @@
                 renderMetrics(data.metrics);
                 renderCharts(data.attendants);
                 renderTable(data.reviews);
+
+                // New logic
+                renderRecentReviews(data.reviews.slice(0, 30));
                 renderAttendantsList(data.attendants);
+                checkPlanLimits(data.plan, data.metrics.activeAttendants);
 
             } catch (e) {
                 console.error(e);
-                // alert("Erro de conexão. Tente recarregar.");
             }
         }
 
@@ -1310,10 +1389,62 @@
             });
         }
 
+        // --- ATTENDANTS LIST & SORT ---
+        let attendantsSort = 'name'; // default
+
+        function toggleAttendantSort() {
+            if (attendantsSort === 'name') attendantsSort = 'reviews';
+            else attendantsSort = 'name';
+            renderAttendantsList(globalData.attendants);
+        }
+
         function renderAttendantsList(attendants) {
             const tbody = document.getElementById('attendantsTableBody');
+
+            // Create Toolbar if not exists
+            let toolbar = document.getElementById('atdToolbar');
+            if (!toolbar) {
+                const container = document.querySelector('#view-attendants .glass-panel');
+                // Only insert if container exists and H2 exists
+                const h2 = container.querySelector('h2');
+                if (h2) {
+                    toolbar = document.createElement('div');
+                    toolbar.id = 'atdToolbar';
+                    toolbar.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;";
+
+                    // Helper text for Plan Limits (Initial placeholder, updated below)
+                    toolbar.innerHTML = `
+                        <div id="planUsageText" style="font-size: 0.9rem; color: var(--text-muted);">
+                           Uso do Plano: --
+                        </div>
+                        <button onclick="toggleAttendantSort()" style="background: rgba(255,255,255,0.1); border:none; color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer;">
+                            ⇅ Ordenar por Avaliações
+                        </button>
+                     `;
+                    h2.insertAdjacentElement('afterend', toolbar);
+                }
+            }
+
+            // Update Limit Text
+            const limitTextEl = document.getElementById('planUsageText');
+            if (limitTextEl && globalData.plan) {
+                const limits = { 'GRATIS': 5, 'PEQUENAS': 20, 'GRANDES': Infinity };
+                const limit = limits[globalData.plan] || 5;
+                const count = globalData.metrics.activeAttendants || 0;
+                const txt = limit === Infinity ? 'Ilimitado' : `${count}/${limit}`;
+                limitTextEl.innerHTML = `Uso do Plano: <strong style="color: #fff;">${txt}</strong> atendentes`;
+            }
+
+            // SORT DATA
+            let sorted = [...attendants];
+            if (attendantsSort === 'reviews') {
+                sorted.sort((a, b) => b._count.reviews - a._count.reviews);
+            } else {
+                sorted.sort((a, b) => a.name.localeCompare(b.name));
+            }
+
             tbody.innerHTML = '';
-            attendants.forEach(att => {
+            sorted.forEach(att => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td><b>${att.name}</b></td>
@@ -1567,7 +1698,10 @@
 
         async function saveIntegrations(e) {
             e.preventDefault();
-            const whatsapp = document.getElementById('whatsappInput').value;
+            const whatsappRaw = document.getElementById('whatsappInput').value;
+            // Split comma, trim
+            const whatsappNumbers = whatsappRaw.split(',').map(s => s.trim()).filter(s => s);
+
             const notificationRule = document.getElementById('notifyRuleInput').value;
 
             try {
@@ -1575,8 +1709,11 @@
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({
-                        whatsapp,
-                        notifications: JSON.stringify({ whatsappRule: notificationRule })
+                        whatsapp: whatsappNumbers[0] || "", // Primary
+                        notifications: JSON.stringify({
+                            whatsappRule: notificationRule,
+                            whatsappNumbers: whatsappNumbers // Save array
+                        })
                     })
                 });
                 if (res.ok) alert('Integrações salvas!');

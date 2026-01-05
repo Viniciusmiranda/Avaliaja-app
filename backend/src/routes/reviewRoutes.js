@@ -10,5 +10,6 @@ router.put('/:id', reviewController.updateReview); // Public update for flow
 
 // Private
 router.get('/dashboard', auth, reviewController.getDashboardData);
+router.get('/list', auth, reviewController.listReviews);
 
 module.exports = router;

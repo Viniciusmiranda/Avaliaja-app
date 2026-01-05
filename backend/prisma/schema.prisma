@@ -42,6 +42,7 @@ model Company {
   // Customization
   logo         String?
   primaryColor String?
+  plan         String   @default("GRATIS") // GRATIS, PEQUENAS, GRANDES
   settings     Json?      // Armazena config flexível (perguntas, ordem, etc)
   notifications Json?     // Armazena config de integrações (WhatsApp, triggers)
 

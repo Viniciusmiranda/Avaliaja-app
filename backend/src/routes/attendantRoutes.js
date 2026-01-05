@@ -12,11 +12,35 @@ router.post('/', auth, async (req, res) => {
     if (!companyId) return res.status(400).json({ error: "Contexto de empresa desconhecido." });
 
     try {
+        const company = await prisma.company.findUnique({
+            where: { id: companyId },
+            select: { plan: true }
+        });
+
+        const currentCount = await prisma.attendant.count({
+            where: { companyId }
+        });
+
+        const PLAN_LIMITS = {
+            'GRATIS': 5,
+            'PEQUENAS': 20,
+            'GRANDES': Infinity
+        };
+
+        const limit = PLAN_LIMITS[company.plan] || 5;
+
+        if (currentCount >= limit) {
+            return res.status(403).json({
+                error: `Limite do plano atingido (${currentCount}/${limit}). Faça upgrade para adicionar mais.`
+            });
+        }
+
         const newAttendant = await prisma.attendant.create({
             data: { name, companyId }
         });
         res.json(newAttendant);
     } catch (err) {
+        console.error(err);
         res.status(500).json({ error: 'Erro ao criar atendente.' });
     }
 });

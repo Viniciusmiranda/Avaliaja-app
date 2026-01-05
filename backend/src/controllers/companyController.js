@@ -17,7 +17,8 @@ exports.getSettings = async (req, res) => {
                 slug: true,
                 name: true,
                 area: true,
-                whatsapp: true
+                whatsapp: true,
+                plan: true
             }
         });
 

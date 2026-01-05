@@ -136,11 +136,12 @@ exports.getDashboardData = async (req, res) => {
         // Company Details
         const company = await prisma.company.findUnique({
             where: { id: companyId },
-            select: { name: true }
+            select: { name: true, plan: true }
         });
 
         res.json({
             companyName: company?.name || "Minha Empresa",
+            plan: company?.plan || "GRATIS",
             metrics: {
                 total: totalReviews,
                 average: aggs._avg.stars || 0,
@@ -154,5 +155,28 @@ exports.getDashboardData = async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Erro ao buscar dados.' });
+    }
+};
+
+// Paginated Reviews (Load More)
+exports.listReviews = async (req, res) => {
+    const { companyId } = req.user;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 30;
+    const skip = (page - 1) * limit;
+
+    try {
+        const reviews = await prisma.review.findMany({
+            where: { attendant: { companyId } },
+            include: { attendant: true },
+            orderBy: { createdAt: 'desc' },
+            take: limit,
+            skip: skip
+        });
+
+        res.json(reviews);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao listar avaliações.' });
     }
 };
