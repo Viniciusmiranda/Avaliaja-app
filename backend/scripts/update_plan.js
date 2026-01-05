@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 async function main() {
     const args = process.argv.slice(2);
     const slug = args[0];
-    const newPlan = args[1]?.toUpperCase();
+    const newPlan = args[1] ? args[1].toUpperCase() : null;
 
     // List all companies if no arguments
     if (!slug) {
