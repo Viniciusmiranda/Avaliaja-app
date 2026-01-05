@@ -1091,7 +1091,11 @@
                 'reviews': 'Avaliações Detalhadas',
                 'export': 'Exportação',
                 'personalizacao': 'Personalização',
-                'ajustes': 'Ajustes'
+                'ajustes': 'Minha Conta',
+                'updates': 'Atualizações do Sistema',
+                'integracoes': 'Integrações',
+                'gestores': 'Gestores',
+                'suporte': 'Suporte'
             };
             const title = titleMap[viewName] || 'Painel';
             document.getElementById('pageTitle').innerText = title;
@@ -1118,6 +1122,24 @@
             }
 
             switchView(tabName);
+
+            // Lazy Load Actions
+            if (tabName === 'gestores') loadUsers();
+            if (tabName === 'attendants') renderAttendantsList(globalData.attendants);
+            if (tabName === 'updates') loadChangelog();
+        }
+
+        async function loadChangelog() {
+            const container = document.getElementById('changelogContent');
+            try {
+                const res = await fetch('changelog.md');
+                if (!res.ok) throw new Error("Erro ao carregar");
+                const text = await res.text();
+                // Parse using Marked (if available) or raw text
+                container.innerHTML = typeof marked !== 'undefined' ? marked.parse(text) : `<pre>${text}</pre>`;
+            } catch (e) {
+                container.innerHTML = "Não foi possível carregar o histórico de versões.";
+            }
         }
 
         // --- CUSTOMIZATION LOGIC ---
@@ -1619,24 +1641,41 @@
         // Init
         loadDashboard();
 
-        // --- PREVIEW LOGIC ---
+        // --- PREVIEW LOGIC (POSTMESSAGE) ---
         function updatePreviewColor(color) {
-            document.getElementById('previewContainer').style.background = color;
+            const frame = document.getElementById('previewIframe');
+            if (frame && frame.contentWindow) {
+                frame.contentWindow.postMessage({ type: 'UPDATE_COLOR', color: color }, '*');
+            }
         }
 
         function updatePreviewText(text) {
-            document.getElementById('previewTitle').innerText = text || "Como foi sua experiência?";
+            const frame = document.getElementById('previewIframe');
+            if (frame && frame.contentWindow) {
+                frame.contentWindow.postMessage({ type: 'UPDATE_TEXT', text: text }, '*');
+            }
         }
 
         function togglePreviewObs(show) {
-            document.getElementById('previewObs').style.display = show ? 'block' : 'none';
+            const frame = document.getElementById('previewIframe');
+            if (frame && frame.contentWindow) {
+                frame.contentWindow.postMessage({ type: 'TOGGLE_OBS', show: show }, '*');
+            }
         }
 
         function updatePreviewLogo(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
                 reader.onload = function (e) {
-                    document.getElementById('previewLogo').src = e.target.result;
+                    const base64 = e.target.result;
+                    // Show small preview in dashboard
+                    document.getElementById('logoPreviewContainer').style.display = 'block';
+                    document.getElementById('logoPreviewImg').src = base64;
+                    // Send to Iframe
+                    const frame = document.getElementById('previewIframe');
+                    if (frame && frame.contentWindow) {
+                        frame.contentWindow.postMessage({ type: 'UPDATE_LOGO', src: base64 }, '*');
+                    }
                 }
                 reader.readAsDataURL(input.files[0]);
             }
