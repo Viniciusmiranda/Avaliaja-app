@@ -10,75 +10,142 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #ffffff;
-            --accent-blue: #2b1da7;
-            --deep-blue: #030518;
-            --gold: #FFD700;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
+            --primary: #10b981;
+            --secondary: #3b82f6;
+            --accent: #06b6d4;
+            --dark: #0a1628;
+            --text: #f0fdf4;
+            --text-muted: #cbd5e1;
         }
 
         body {
+            background: var(--dark);
+            color: var(--text);
             min-height: 100vh;
-            background: linear-gradient(135deg, #0f2a13 0%, #1e1b4b 50%, #165524 100%);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             font-family: 'Montserrat', sans-serif;
-            color: var(--primary);
+            overflow: hidden;
+        }
+
+        /* Background animado */
+        .animated-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .gradient-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .orb1 {
+            width: 500px;
+            height: 500px;
+            background: var(--primary);
+            top: -200px;
+            left: -200px;
+            animation-delay: 0s;
+        }
+
+        .orb2 {
+            width: 400px;
+            height: 400px;
+            background: var(--secondary);
+            bottom: -150px;
+            right: -150px;
+            animation-delay: 5s;
+        }
+
+        .orb3 {
+            width: 350px;
+            height: 350px;
+            background: var(--accent);
+            top: 50%;
+            left: 50%;
+            animation-delay: 10s;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            25% {
+                transform: translate(50px, 100px) scale(1.1);
+            }
+
+            50% {
+                transform: translate(-30px, 50px) scale(0.9);
+            }
+
+            75% {
+                transform: translate(30px, -50px) scale(1.05);
+            }
         }
 
         .login-container {
-            background: rgba(255, 255, 255, 0.85);
-            /* Light background for logo contrast */
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.05);
+            /* Glass Style */
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             padding: 3rem;
             border-radius: 24px;
-            border: 1px solid rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             width: 100%;
             max-width: 420px;
             text-align: center;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            z-index: 10;
         }
 
         .logo-img {
-            max-width: 280px;
-            margin-bottom: 10px;
+            max-width: 250px;
+            margin-bottom: 20px;
+            filter: brightness(0) invert(1) drop-shadow(0 0 5px rgba(255, 255, 255, 0.3));
+            /* White Logo */
         }
 
         h2 {
             margin-bottom: 30px;
             font-weight: 700;
+            color: #fff;
         }
 
         .input-group {
             margin-bottom: 20px;
             text-align: left;
+            position: relative;
+            /* For eye icon */
         }
 
         label {
             display: block;
             margin-bottom: 8px;
             font-size: 0.9rem;
-            font-weight: 600;
-            color: var(--deep-blue);
-            /* Dark text for light bg */
-            opacity: 1;
+            font-weight: 500;
+            color: var(--text-muted);
         }
 
         input {
             width: 100%;
             padding: 14px 16px;
             border-radius: 12px;
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            background: rgba(255, 255, 255, 0.9);
-            color: var(--deep-blue);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.2);
+            color: #fff;
             font-family: inherit;
             font-size: 1rem;
             transition: all 0.3s ease;
@@ -86,53 +153,89 @@
 
         input:focus {
             outline: none;
-            border-color: var(--accent-blue);
-            background: #ffffff;
-            box-shadow: 0 0 0 4px rgba(43, 29, 167, 0.1);
+            border-color: var(--secondary);
+            background: rgba(0, 0, 0, 0.4);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Eye Icon */
+        .toggle-password {
+            position: absolute;
+            right: 15px;
+            top: 42px;
+            /* Adjust based on label height and padding */
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            user-select: none;
+        }
+
+        .toggle-password:hover {
+            color: #fff;
         }
 
         .btn-login {
             width: 100%;
             padding: 15px;
-            background: linear-gradient(135deg, #2b1da7 0%, #1a106b 100%);
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--accent) 100%);
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             color: white;
             font-weight: bold;
+            font-size: 1rem;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            margin-top: 10px;
+            transition: all 0.3s;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
         }
 
         .btn-login:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(43, 29, 167, 0.4);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
         }
 
-        .back-link {
-            display: block;
-            margin-top: 20px;
-            color: var(--deep-blue);
+        .links-area {
+            margin-top: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .link-item {
+            color: var(--text-muted);
             text-decoration: none;
             font-size: 0.9rem;
-            opacity: 0.7;
-            font-weight: 500;
+            transition: color 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
         }
 
-        .back-link:hover {
-            color: var(--accent-blue);
-            opacity: 1;
+        .link-item:hover {
+            color: #fff;
+            text-decoration: underline;
         }
 
-        h2 {
-            margin-bottom: 30px;
-            font-weight: 700;
-            color: var(--deep-blue);
+        .whatsapp-btn {
+            color: #25D366;
+        }
+
+        .whatsapp-btn:hover {
+            color: #4ade80;
         }
     </style>
 </head>
 
 <body>
+
+    <!-- Dynamic Background -->
+    <div class="animated-bg">
+        <div class="gradient-orb orb1"></div>
+        <div class="gradient-orb orb2"></div>
+        <div class="gradient-orb orb3"></div>
+    </div>
 
     <div class="login-container">
         <a href="https://www.avaliaja.app.br">
@@ -143,58 +246,90 @@
         <form id="loginForm">
             <div class="input-group">
                 <label>Login</label>
-                <input type="email" id="email" required placeholder="Email">
+                <input type="email" id="email" required placeholder="seu@email.com">
             </div>
             <div class="input-group">
                 <label>Senha</label>
-                <input type="password" id="password" required placeholder="*****">
+                <div style="position: relative;">
+                    <input type="password" id="password" required placeholder="*****">
+                    <span class="toggle-password" onclick="togglePassword()">👁️</span>
+                </div>
             </div>
 
             <button type="submit" class="btn-login">ENTRAR</button>
         </form>
 
-        <script>
-            document.getElementById('loginForm').addEventListener('submit', async function (e) {
-                e.preventDefault();
-                const email = document.getElementById('email').value;
-                const password = document.getElementById('password').value;
-                const btn = document.querySelector('.btn-login');
-                const originalText = btn.innerText;
+        <div class="links-area">
+            <a href="#" class="link-item whatsapp-btn" onclick="forgotPassword()">
+                <span>🔑</span> Esqueci minha senha
+            </a>
+            <a href="register.html" class="link-item">
+                Criar nova conta
+            </a>
+        </div>
+    </div>
 
-                btn.innerText = "Verificando...";
-                btn.disabled = true;
+    <script>
+        function togglePassword() {
+            const input = document.getElementById('password');
+            const icon = document.querySelector('.toggle-password');
+            if (input.type === "password") {
+                input.type = "text";
+                icon.innerText = "🔒"; // Icon changes to indicate 'hide' or just closed eye
+            } else {
+                input.type = "password";
+                icon.innerText = "👁️";
+            }
+        }
 
-                try {
-                    const response = await fetch('/api/auth/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email, password })
-                    });
+        function forgotPassword() {
+            const email = document.getElementById('email').value;
+            let msg = "Olá, suporte! Esqueci minha senha no AvaliaJá.";
+            if (email) {
+                msg += ` Meu email é: ${email}`;
+            }
+            const phone = "5511961836170"; // Suporte
+            const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+            window.open(url, '_blank');
+        }
 
-                    const data = await response.json();
+        document.getElementById('loginForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const btn = document.querySelector('.btn-login');
+            const originalText = btn.innerText;
 
-                    if (response.ok) {
-                        localStorage.setItem('token', data.token);
-                        localStorage.setItem('user', JSON.stringify(data.user));
-                        const slug = data.user.companySlug;
-                        window.location.href = slug ? `/${slug}/dashboard` : 'dashboard.html';
-                    } else {
-                        alert(data.error || 'Erro ao entrar.');
-                        btn.innerText = originalText;
-                        btn.disabled = false;
-                    }
-                } catch (err) {
-                    console.error(err);
-                    alert('Erro de conexão com o servidor. Verifique se o backend está rodando em localhost:3000');
+            btn.innerText = "Verificando...";
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    const slug = data.user.companySlug;
+                    window.location.href = slug ? `/${slug}/dashboard` : 'dashboard.html';
+                } else {
+                    alert(data.error || 'Erro ao entrar.');
                     btn.innerText = originalText;
                     btn.disabled = false;
                 }
-            });
-        </script>
-
-        <a href="register.html" class="back-link">Não possuo login</a>
-    </div>
-
+            } catch (err) {
+                console.error(err);
+                alert('Erro de conexão com o servidor. Verifique se o backend está rodando em localhost:3000');
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        });
+    </script>
 </body>
 
 </html>
