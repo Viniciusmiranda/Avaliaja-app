@@ -48,7 +48,7 @@ exports.register = async (req, res) => {
             .replace(/[^\w-]+/g, '');
 
         // Transaction: Create Company -> Attendant -> User
-        await prisma.$transaction(async (prisma) => {
+        const result = await prisma.$transaction(async (prisma) => {
             const newCompany = await prisma.company.create({
                 data: {
                     name: companyName,
@@ -68,7 +68,7 @@ exports.register = async (req, res) => {
 
             // Admin User
             const hashedPassword = await bcrypt.hash(password, 10);
-            await prisma.user.create({
+            const newUser = await prisma.user.create({
                 data: {
                     name,
                     email,
@@ -77,9 +77,27 @@ exports.register = async (req, res) => {
                     companyId: newCompany.id
                 }
             });
+
+            // Auto-Login: Generate Token
+            const token = jwt.sign(
+                { id: newUser.id, role: newUser.role, companyId: newCompany.id },
+                process.env.JWT_SECRET,
+                { expiresIn: '8h' }
+            );
+
+            return { token, user: newUser, slug };
         });
 
-        res.status(201).json({ message: 'Empresa registrada!', slug });
+        res.status(201).json({
+            message: 'Empresa registrada!',
+            token: result.token,
+            user: {
+                name: result.user.name,
+                role: result.user.role,
+                companySlug: result.slug
+            },
+            slug: result.slug
+        });
     } catch (err) {
         console.error(err);
         if (err.code === 'P2002') {

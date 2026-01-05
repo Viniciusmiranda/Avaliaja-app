@@ -25,14 +25,19 @@ model User {
 }
 
 model Company {
-  id         String      @id @default(uuid())
-  name       String
-  slug       String      @unique
-  domain     String?
-  active     Boolean     @default(true)
-  users      User[]
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  
+  // Novos campos adicionados
+  area      String?
+  whatsapp  String?
+  
+  domain    String?
+  active    Boolean  @default(true)
+  users     User[]
   attendants Attendant[]
-  createdAt  DateTime    @default(now())
+  createdAt DateTime @default(now())
 
   @@map("empresas")
 }

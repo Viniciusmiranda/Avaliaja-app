@@ -242,8 +242,13 @@
                     const data = await response.json();
 
                     if (response.ok) {
-                        alert(`Conta criada com sucesso! Link da empresa: ${data.slug}`);
-                        window.location.href = 'login.html';
+                        // Auto-Login
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+
+                        // Alert & Redirect
+                        // alert(`Conta criada com sucesso!`);
+                        window.location.href = `/${data.slug}/dashboard`;
                     } else {
                         alert(data.error || 'Erro ao criar conta.');
                         btn.innerText = originalText;
