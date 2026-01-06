@@ -638,11 +638,7 @@
             </a>
             <a href="#" class="nav-item" onclick="switchTab('suporte', this)">
                 <span class="nav-icon">🎧</span>
-                Suporte
-            </a>
-            <a href="#" class="nav-item" onclick="switchTab('updates', this)">
-                <span class="nav-icon">🚀</span>
-                Atualizações
+                Suporte & Novidades
             </a>
 
             <div class="sidebar-footer"
@@ -879,7 +875,9 @@
                                 <th>Local (IP)</th>
                                 <th>Mapa</th>
                                 <th>Cidade/UF</th>
-                                <th>Disp.</th>
+                                <th>Cidade/UF</th>
+                                <!-- Removed Disp. -->
+                            </tr>
                             </tr>
                         </thead>
                         <tbody id="reportsTableBody">
@@ -982,7 +980,7 @@
                 </article>
 
                 <!-- CARD: N8N (Webhook) -->
-                <article class="glass-panel" style="padding: 30px; opacity: 0.8;">
+                <article class="glass-panel" style="padding: 30px;">
                     <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
                         <div
                             style="width: 50px; height: 50px; background: #ea4b71; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem;">
@@ -993,13 +991,19 @@
                             </p>
                         </div>
                     </div>
-                    <p style="font-size: 0.9rem; color: #ccc; margin-bottom: 20px;">
-                        Dispara um POST JSON para cada avaliação recebida. Configure a URL nas configurações avançadas.
-                    </p>
-                    <button class="btn-glow"
-                        style="background: rgba(255,255,255,0.1); width: 100%; justify-content: center;" disabled>
-                        Configurar (Em Breve)
-                    </button>
+
+                    <form onsubmit="saveIntegrations(event)">
+                        <div style="margin-bottom: 15px;">
+                            <label style="display:block; margin-bottom: 8px; font-size: 0.85rem; color: #ccc;">URL do
+                                Webhook (POST)</label>
+                            <input type="url" id="n8nWebhookInput" placeholder="https://primary.n8n.cloud/webhook/..."
+                                style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.4); color: #fff;">
+                        </div>
+                        <button type="submit" class="btn-glow"
+                            style="background: #ea4b71; width: 100%; justify-content: center;">
+                            Salvar Integração
+                        </button>
+                    </form>
                 </article>
 
                 <!-- CARD: Email -->
@@ -1164,13 +1168,27 @@
 
         <!-- VIEW: SUPORTE -->
         <div id="view-suporte" class="view-section" style="display: none;">
-            <section class="glass-panel" style="padding: 40px; text-align: center;">
+            <section class="glass-panel" style="padding: 40px; text-align: center; margin-bottom: 30px;">
                 <h2 style="margin-bottom: 20px;">Precisa de Ajuda?</h2>
                 <p class="text-muted">Entre em contato: suporte@avaliaja.app.br</p>
                 <a href="https://wa.me/5511999999999" target="_blank" class="btn-glow"
                     style="display: inline-flex; margin-top: 20px; text-decoration: none;">
                     Falar no WhatsApp
                 </a>
+            </section>
+
+            <!-- Moved Updates Here -->
+            <section class="glass-panel" style="padding: 40px; max-width: 800px; margin: 0 auto;">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 30px;">
+                    <div style="font-size: 2rem;">🚀</div>
+                    <div>
+                        <h2 style="margin: 0;">Novidades e Atualizações</h2>
+                        <p style="color: var(--text-muted);">Confira o que há de novo no Avalia Já.</p>
+                    </div>
+                </div>
+                <div id="changelogContent" style="line-height: 1.6; color: #e2e8f0;">
+                    Carregando histórico...
+                </div>
             </section>
         </div>
 
@@ -1263,21 +1281,7 @@
             </div>
         </div>
 
-        <!-- VIEW: UPDATES (Moved outside) -->
-        <div id="view-updates" class="view-section" style="display: none;">
-            <section class="glass-panel" style="padding: 40px; max-width: 800px; margin: 0 auto;">
-                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 30px;">
-                    <div style="font-size: 2rem;">🚀</div>
-                    <div>
-                        <h2 style="margin: 0;">Novidades e Atualizações</h2>
-                        <p style="color: var(--text-muted);">Confira o que há de novo no Avalia Já.</p>
-                    </div>
-                </div>
-                <div id="changelogContent" style="line-height: 1.6; color: #e2e8f0;">
-                    Carregando histórico...
-                </div>
-            </section>
-        </div>
+
 
 
 
@@ -1408,6 +1412,7 @@
             if (tabName === 'gestores') loadUsers();
             if (tabName === 'attendants') renderAttendantsList(globalData.attendants);
             if (tabName === 'updates') loadChangelog();
+            if (tabName === 'suporte') loadChangelog(); // Load updates in Support tab too
             if (tabName === 'relatorios') applyReportFilters(true); // Load initial reports
         }
 
@@ -1449,6 +1454,20 @@
                         if (s.questionTitle) document.getElementById('questionTitleInput').value = s.questionTitle;
                         if (s.redirectUrl) document.getElementById('redirectUrlInput').value = s.redirectUrl;
                         if (s.showObservation !== undefined) document.getElementById('showObsInput').checked = s.showObservation;
+                    }
+
+                    if (data.notifications) {
+                        // Load N8N Webhook
+                        if (data.notifications.webhookUrl && document.getElementById('n8nWebhookInput')) {
+                            document.getElementById('n8nWebhookInput').value = data.notifications.webhookUrl;
+                        }
+                        // Load WhatsApp Numbers (existing logic might need check)
+                        if (data.notifications.whatsappNumbers && document.getElementById('whatsappInput')) {
+                            document.getElementById('whatsappInput').value = data.notifications.whatsappNumbers.join(', ');
+                        }
+                        if (data.notifications.notifyRule && document.getElementById('notifyRuleInput')) {
+                            document.getElementById('notifyRuleInput').value = data.notifications.notifyRule;
+                        }
                     }
 
                     if (data.logo) {
@@ -1598,8 +1617,8 @@
                 const date = new Date(item.createdAt);
 
                 const baseColumns = `
-                    <td><span class="badge badge-attendant" style="color: ${attColor}; border: 1px solid ${attColor}; background: ${attColor}33; font-weight: bold; text-shadow: 0 0 10px ${attColor}44;">${attName}</span></td>
-                    <td>${date.toLocaleDateString()} <small>${date.toLocaleTimeString().slice(0, 5)}</small></td>
+                    <td style="white-space: nowrap;"><span class="badge badge-attendant" style="color: ${attColor}; border: 1px solid ${attColor}; background: ${attColor}33; font-weight: bold; text-shadow: 0 0 10px ${attColor}44;">${attName}</span></td>
+                    <td style="white-space: nowrap;">${date.toLocaleDateString()} <small>${date.toLocaleTimeString().slice(0, 5)}</small></td>
                     <td><span class="stars-display">${starsHtml}</span></td>
                     <td>${item.comment || '-'}</td>
                 `;
@@ -1607,13 +1626,14 @@
                 if (isDashboard) {
                     tr.innerHTML = baseColumns;
                 } else {
+                    // Reports View
                     const ipDisplay = item.ip ? item.ip : 'N/A';
                     const mapsLink = item.location ? `<a href="${item.location}" target="_blank" style="color: #4facfe;">📍 Ver Mapa</a>` : '-';
                     const fullColumns = baseColumns + `
                         <td>${ipDisplay}</td>
                         <td>${mapsLink}</td>
                         <td>${item.city || '-'} / ${item.state || '-'}</td>
-                         <td><span class="badge badge-device">${item.device || '?'}</span></td>
+                         <!-- Device Column Removed -->
                     `;
                     tr.innerHTML = fullColumns;
                 }
@@ -2298,11 +2318,14 @@
 
         async function saveIntegrations(e) {
             e.preventDefault();
-            const whatsappRaw = document.getElementById('whatsappInput').value;
+            const whatsappRaw = document.getElementById('whatsappInput') ? document.getElementById('whatsappInput').value : '';
             // Split comma, trim
             const whatsappNumbers = whatsappRaw.split(',').map(s => s.trim()).filter(s => s);
 
-            const notificationRule = document.getElementById('notifyRuleInput').value;
+            const notificationRule = document.getElementById('notifyRuleInput') ? document.getElementById('notifyRuleInput').value : 'all';
+
+            // N8N Webhook
+            const webhookUrl = document.getElementById('n8nWebhookInput') ? document.getElementById('n8nWebhookInput').value : '';
 
             try {
                 const res = await fetch('/api/company/settings', {
@@ -2312,11 +2335,12 @@
                         whatsapp: whatsappNumbers[0] || "", // Primary
                         notifications: JSON.stringify({
                             whatsappRule: notificationRule,
-                            whatsappNumbers: whatsappNumbers // Save array
+                            whatsappNumbers: whatsappNumbers, // Save array
+                            webhookUrl: webhookUrl // Save N8N URL
                         })
                     })
                 });
-                if (res.ok) alert('Integrações salvas!');
+                if (res.ok) alert('Integrações salvas com sucesso!');
             } catch (e) { console.error(e); }
         }
 

@@ -48,9 +48,16 @@ exports.submitReview = async (req, res) => {
             }
         });
 
-        // Send to N8N Webhook (Fire and Forget)
-        if (process.env.N8N_WEBHOOK_URL) {
-            fetch(process.env.N8N_WEBHOOK_URL, {
+        // Send to N8N Webhook (Dynamic from Company Settings)
+        let notifications = company.notifications;
+        if (typeof notifications === 'string') {
+            try { notifications = JSON.parse(notifications); } catch (e) { }
+        }
+
+        const webhookUrl = notifications?.webhookUrl || process.env.N8N_WEBHOOK_URL;
+
+        if (webhookUrl) {
+            fetch(webhookUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -64,7 +71,8 @@ exports.submitReview = async (req, res) => {
                     client_state: state,
                     client_device: device,
                     location_url: link_maps,
-                    created_at: review.createdAt
+                    created_at: review.createdAt,
+                    whatsapp_numbers: notifications?.whatsappNumbers || [] // Include configured numbers
                 })
             }).catch(err => console.error('Error sending to N8N:', err));
         }
