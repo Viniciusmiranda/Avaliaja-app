@@ -158,16 +158,51 @@ exports.getDashboardData = async (req, res) => {
     }
 };
 
-// Paginated Reviews (Load More)
+// Paginated Reviews (Load More) with Filters
 exports.listReviews = async (req, res) => {
     const { companyId } = req.user;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 30;
     const skip = (page - 1) * limit;
 
+    // Filters
+    const search = req.query.search;
+    const startDate = req.query.startDate;
+    const endDate = req.query.endDate;
+    const minStars = req.query.minStars ? parseInt(req.query.minStars) : undefined;
+
     try {
+        const where = {
+            attendant: { companyId }
+        };
+
+        // Date Range
+        if (startDate || endDate) {
+            where.createdAt = {};
+            if (startDate) where.createdAt.gte = new Date(startDate);
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999);
+                where.createdAt.lte = end;
+            }
+        }
+
+        // Min Stars
+        if (minStars) {
+            where.stars = { gte: minStars };
+        }
+
+        // Search (Attendant Name, City, Comment)
+        if (search) {
+            where.OR = [
+                { attendant: { name: { contains: search, mode: 'insensitive' } } },
+                { city: { contains: search, mode: 'insensitive' } },
+                { comment: { contains: search, mode: 'insensitive' } }
+            ];
+        }
+
         const reviews = await prisma.review.findMany({
-            where: { attendant: { companyId } },
+            where: where,
             include: { attendant: true },
             orderBy: { createdAt: 'desc' },
             take: limit,

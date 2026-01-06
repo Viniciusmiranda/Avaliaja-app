@@ -810,49 +810,97 @@
             </section>
         </div>
 
-        <!-- VIEW: REVIEWS -->
-        <div id="view-reviews" class="view-section" style="display: none;">
-            <!-- TABLE SECTION -->
-            <section class="glass-panel">
-                <div class="header-actions">
-                    <h3>Avaliações</h3>
-                    <!-- Export Actions moved to Reports Tab -->
+        <!-- VIEW: RELATORIOS (NEW CONSOLIDATED) -->
+        <div id="view-relatorios" class="view-section" style="display: none;">
+
+            <!-- Quick Actions Card (Export) -->
+            <section class="glass-panel"
+                style="padding: 25px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+                <div>
+                    <h2 style="margin: 0;">Relatórios e Análises</h2>
+                    <p style="color: var(--text-muted); margin: 5px 0 0 0;">Exporte dados completos ou analise
+                        detalhadamente abaixo.</p>
+                </div>
+                <div style="display: flex; gap: 15px;">
+                    <button class="btn-glow" style="background: #1d6f42;" onclick="exportToCSV()">
+                        📥 Excel (.csv)
+                    </button>
+                    <button class="btn-glow" style="background: #b91c1c;" onclick="generatePDF()">
+                        📄 PDF
+                    </button>
+                </div>
+            </section>
+
+            <!-- Detailed Analysis Section -->
+            <section class="glass-panel" style="padding: 0;">
+                <!-- Filters Toolbar -->
+                <div
+                    style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
+                    <!-- Date Start -->
+                    <div style="flex: 1; min-width: 150px;">
+                        <label
+                            style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">Início:</label>
+                        <input type="date" id="reportStartDate" class="glass-panel"
+                            style="width: 100%; padding: 10px; color: #fff; border: 1px solid rgba(255,255,255,0.2); outline: none; background: rgba(0,0,0,0.3);">
+                    </div>
+                    <!-- Date End -->
+                    <div style="flex: 1; min-width: 150px;">
+                        <label
+                            style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">Fim:</label>
+                        <input type="date" id="reportEndDate" class="glass-panel"
+                            style="width: 100%; padding: 10px; color: #fff; border: 1px solid rgba(255,255,255,0.2); outline: none; background: rgba(0,0,0,0.3);">
+                    </div>
+                    <!-- Search Text -->
+                    <div style="flex: 2; min-width: 200px;">
+                        <label
+                            style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">Buscar
+                            (Atendente, Cidade, Nota...)</label>
+                        <input type="text" id="reportSearchInput" placeholder="Ex: João, 5, São Paulo"
+                            class="glass-panel"
+                            style="width: 100%; padding: 10px; color: #fff; border: 1px solid rgba(255,255,255,0.2); outline: none; background: rgba(0,0,0,0.3);">
+                    </div>
+                    <!-- Filter Button -->
+                    <button class="btn-glow" onclick="applyReportFilters()"
+                        style="padding: 10px 20px; margin-bottom: 2px;">
+                        🔍 Filtrar Resultados
+                    </button>
                 </div>
 
-                <div class="table-container">
-                    <table class="data-table">
-                        <thead>
+                <!-- Table Container -->
+                <div style="overflow-x: auto; max-height: 600px;">
+                    <table class="data-table" style="width: 100%;">
+                        <thead
+                            style="position: sticky; top: 0; background: #0a1628; z-index: 10; box-shadow: 0 2px 10px rgba(0,0,0,0.3);">
                             <tr>
                                 <th>Atendente</th>
                                 <th>Data/Hora</th>
                                 <th>Nota</th>
                                 <th>Comentário</th>
                                 <th>Local (IP)</th>
-                                <th>Link Mapa</th>
+                                <th>Mapa</th>
                                 <th>Cidade/UF</th>
-                                <th>Dispositivo</th>
+                                <th>Disp.</th>
                             </tr>
                         </thead>
-                        <tbody id="reviewsTableBody">
-                            <!-- JS Populated -->
+                        <tbody id="reportsTableBody">
+                            <!-- Populated via JS -->
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                                    Carregando dados...
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
-                <button id="btnLoadMoreReviews" onclick="loadMoreReviews()" class="btn-glow"
-                    style="margin: 20px auto; display: block; background: rgba(255,255,255,0.05);">Carregar
-                    Mais...</button>
-            </section>
-        </div>
 
-        <!-- VIEW: EXPORT -->
-        <div id="view-export" class="view-section" style="display: none;">
-            <section class="glass-panel" style="padding: 40px; text-align: center;">
-                <h2 style="margin-bottom: 20px;">Exportar Dados</h2>
-                <p style="margin-bottom: 30px; color: var(--text-muted);">Baixe todas as avaliações recebidas em formato
-                    CSV compatível com Excel.</p>
-                <button class="btn-glow" style="margin: 0 auto;" onclick="exportToCSV()">
-                    📥 Baixar Planilha (.csv)
-                </button>
+                <!-- Pagination / Load More -->
+                <div
+                    style="padding: 20px; text-align: center; border-top: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.01);">
+                    <button id="btnLoadMoreReports" onclick="loadMoreReviews('reportsTableBody')"
+                        style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); padding: 12px 30px; border-radius: 8px; cursor: pointer; transition: all 0.3s; font-weight: 500;">
+                        Carregar Mais Avaliações
+                    </button>
+                </div>
             </section>
         </div>
 
@@ -1297,6 +1345,7 @@
         let globalData = {
             metrics: {},
             reviews: [],
+            reports: [], // New for Reports Tab
             attendants: []
         };
 
@@ -1320,10 +1369,8 @@
             // Update Header
             const titleMap = {
                 'dashboard': 'Visão Geral',
-                'dashboard': 'Visão Geral',
                 'attendants': 'Gestão de Atendentes',
-                'reviews': 'Avaliações Detalhadas',
-                'export': 'Exportação',
+                'relatorios': 'Relatórios e Análise de Performance', // New Title
                 'personalizacao': 'Personalização',
                 'ajustes': 'Minha Conta',
                 'updates': 'Atualizações do Sistema',
@@ -1361,7 +1408,7 @@
             if (tabName === 'gestores') loadUsers();
             if (tabName === 'attendants') renderAttendantsList(globalData.attendants);
             if (tabName === 'updates') loadChangelog();
-            if (tabName === 'reviews') loadReviewsTable(); // New: Load reviews for the detailed table
+            if (tabName === 'relatorios') applyReportFilters(true); // Load initial reports
         }
 
         async function loadChangelog() {
@@ -1538,8 +1585,10 @@
             const tbody = document.getElementById(targetTbodyId);
             if (!tbody) return;
 
-            if (globalData.reviewsPage === 1 && targetTbodyId === 'recentReviewsBody') tbody.innerHTML = ''; // Only clear for dashboard recent reviews
-            if (globalData.reviewsTablePage === 1 && targetTbodyId === 'reviewsTableBody') tbody.innerHTML = ''; // Clear for detailed reviews table
+            // Clear logic
+            if (globalData.reviewsPage === 1 && targetTbodyId === 'recentReviewsBody') tbody.innerHTML = '';
+
+            const isDashboard = targetTbodyId === 'recentReviewsBody';
 
             reviews.forEach(item => {
                 const tr = document.createElement('tr');
@@ -1548,45 +1597,123 @@
                 const attColor = getAttendantColor(attName);
                 const date = new Date(item.createdAt);
 
-                // Updated Columns: Attendant, Date, Stars, Comment, Location (IP), Maps, City/State, Device
-                const ipDisplay = item.ip ? item.ip : 'N/A';
-                const mapsLink = item.location ? `<a href="${item.location}" target="_blank" style="color: #4facfe;">📍 Ver Mapa</a>` : '-';
-
-                tr.innerHTML = `
+                const baseColumns = `
                     <td><span class="badge badge-attendant" style="color: ${attColor}; border: 1px solid ${attColor}; background: ${attColor}33; font-weight: bold; text-shadow: 0 0 10px ${attColor}44;">${attName}</span></td>
                     <td>${date.toLocaleDateString()} <small>${date.toLocaleTimeString().slice(0, 5)}</small></td>
                     <td><span class="stars-display">${starsHtml}</span></td>
                     <td>${item.comment || '-'}</td>
-                    <td>${ipDisplay}</td>
-                    <td>${mapsLink}</td>
-                    <td>${item.city || '-'} / ${item.state || '-'}</td>
-                     <td><span class="badge badge-device">${item.device || '?'}</span></td>
                 `;
+
+                if (isDashboard) {
+                    tr.innerHTML = baseColumns;
+                } else {
+                    const ipDisplay = item.ip ? item.ip : 'N/A';
+                    const mapsLink = item.location ? `<a href="${item.location}" target="_blank" style="color: #4facfe;">📍 Ver Mapa</a>` : '-';
+                    const fullColumns = baseColumns + `
+                        <td>${ipDisplay}</td>
+                        <td>${mapsLink}</td>
+                        <td>${item.city || '-'} / ${item.state || '-'}</td>
+                         <td><span class="badge badge-device">${item.device || '?'}</span></td>
+                    `;
+                    tr.innerHTML = fullColumns;
+                }
                 tbody.appendChild(tr);
             });
         }
 
-        async function loadMoreReviews() {
-            const btn = document.getElementById('btnLoadMoreReviews'); // Changed ID for the detailed reviews table
-            if (btn) btn.innerText = "Carregando...";
-            globalData.reviewsTablePage = (globalData.reviewsTablePage || 1) + 1; // Use a separate page counter for the detailed table
+        // --- REPORTS & FILTERING LOGIC ---
+
+        async function applyReportFilters(reset = false) {
+            const tbody = document.getElementById('reportsTableBody');
+            const btn = document.getElementById('btnLoadMoreReports');
+
+            if (reset) {
+                globalData.reports = [];
+                globalData.reportsPage = 1;
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">Carregando dados...</td></tr>';
+                if (btn) btn.style.display = 'inline-block';
+            }
+
+            // Get Filter Values
+            const start = document.getElementById('reportStartDate').value;
+            const end = document.getElementById('reportEndDate').value;
+            const search = document.getElementById('reportSearchInput').value;
+
+            // Build Query
+            const params = new URLSearchParams({
+                page: globalData.reportsPage || 1,
+                limit: 30
+            });
+            if (start) params.append('startDate', start);
+            if (end) params.append('endDate', end);
+            if (search) params.append('search', search);
 
             try {
-                const res = await fetch(`/api/avaliacoes/list?page=${globalData.reviewsTablePage}&limit=30`, {
+                const res = await fetch(`/api/avaliacoes/list?${params.toString()}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
+
+                if (!res.ok) throw new Error("Erro na API");
+
                 const newReviews = await res.json();
 
+                if (reset) tbody.innerHTML = ''; // Clear loading message
+
+                if (newReviews.length === 0 && reset) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">Nenhuma avaliação encontrada com estes filtros.</td></tr>';
+                    if (btn) btn.style.display = 'none';
+                    return;
+                }
+
                 if (newReviews.length > 0) {
-                    renderRecentReviews(newReviews);
-                    if (btn) btn.innerText = "Carregar Mais...";
+                    // Store/Append Data
+                    globalData.reports = reset ? newReviews : [...globalData.reports, ...newReviews];
+                    renderRecentReviews(newReviews, 'reportsTableBody');
                 } else {
                     if (btn) {
-                        btn.innerText = "Fim das avaliações.";
+                        btn.innerText = "Fim dos resultados.";
                         btn.disabled = true;
+                        setTimeout(() => { btn.style.display = 'none'; btn.disabled = false; btn.innerText = "Carregar Mais Avaliações"; }, 3000);
                     }
                 }
-            } catch (e) { console.error(e); }
+
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px; color: #ef4444;">Erro ao carregar dados. Tente novamente.</td></tr>';
+            }
+        }
+
+        async function loadMoreReviews(targetId) {
+            // Handle Dashboard Loading
+            if (!targetId || targetId === 'recentReviewsBody') {
+                const btn = document.getElementById('btnLoadMore');
+                if (btn) btn.innerText = "Carregando...";
+
+                globalData.reviewsPage = (globalData.reviewsPage || 1) + 1;
+
+                try {
+                    const res = await fetch(`/api/avaliacoes/list?page=${globalData.reviewsPage}&limit=30`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const newReviews = await res.json();
+                    if (newReviews.length > 0) {
+                        renderRecentReviews(newReviews, 'recentReviewsBody');
+                        if (btn) btn.innerText = "Carregar Mais...";
+                    } else {
+                        if (btn) { btn.innerText = "Fim."; btn.disabled = true; }
+                    }
+                } catch (e) { console.error(e); }
+                return;
+            }
+
+            if (targetId === 'reportsTableBody') {
+                globalData.reportsPage = (globalData.reportsPage || 1) + 1;
+                const btn = document.getElementById('btnLoadMoreReports');
+                if (btn) btn.innerText = "Carregando...";
+                applyReportFilters(false).then(() => {
+                    if (btn) btn.innerText = "Carregar Mais Avaliações";
+                });
+            }
         }
 
         // --- INIT ---
@@ -1841,16 +1968,21 @@
         // --- EXPORT FUNCTIONS ---
 
         function getFilteredDataForExport() {
-            const startStr = document.getElementById('reportStartDate').value;
-            const endStr = document.getElementById('reportEndDate').value;
+            // If in Reports tab, use the loaded reports
+            const reportsView = document.getElementById('view-relatorios');
+            if (reportsView && reportsView.style.display !== 'none' && globalData.reports.length > 0) {
+                return globalData.reports;
+            }
+
+            // Fallback to existing dashboard logic
+            const startStr = document.getElementById('reportStartDate')?.value || document.getElementById('dateStart')?.value;
+            const endStr = document.getElementById('reportEndDate')?.value || document.getElementById('dateEnd')?.value;
 
             let data = globalData.reviews;
 
             if (startStr || endStr) {
-                const start = startStr ? new Date(startStr) : new Date(0); // Epoch
+                const start = startStr ? new Date(startStr) : new Date(0);
                 const end = endStr ? new Date(endStr) : new Date();
-
-                // Adjust end date to end of day
                 end.setHours(23, 59, 59, 999);
 
                 data = data.filter(r => {
