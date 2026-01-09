@@ -50,31 +50,50 @@ exports.submitReview = async (req, res) => {
 
         // Send to N8N Webhook (Dynamic from Company Settings)
         let notifications = company.notifications;
+
+        console.log(`[DEBUG] Company: ${company.slug}, Notifications (Raw):`, notifications);
+
         if (typeof notifications === 'string') {
-            try { notifications = JSON.parse(notifications); } catch (e) { }
+            try {
+                notifications = JSON.parse(notifications);
+                console.log(`[DEBUG] Notifications (Parsed):`, notifications);
+            } catch (e) {
+                console.error("[DEBUG] Error parsing notifications JSON:", e);
+            }
         }
 
         const webhookUrl = notifications?.webhookUrl || process.env.N8N_WEBHOOK_URL;
+        console.log(`[DEBUG] Webhook URL determined: ${webhookUrl}`);
 
         if (webhookUrl) {
+            console.log(`[DEBUG] Sending payload to N8N...`);
+            const payload = {
+                id: review.id,
+                stars: review.stars,
+                comment: review.comment,
+                attendant: attendantRecord.name,
+                company: company.name,
+                client_ip: ip,
+                client_city: city,
+                client_state: state,
+                client_device: device,
+                location_url: link_maps,
+                created_at: review.createdAt,
+                whatsapp_numbers: notifications?.whatsappNumbers || []
+            };
+
             fetch(webhookUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id: review.id,
-                    stars: review.stars,
-                    comment: review.comment,
-                    attendant: attendantRecord.name,
-                    company: company.name,
-                    client_ip: ip,
-                    client_city: city,
-                    client_state: state,
-                    client_device: device,
-                    location_url: link_maps,
-                    created_at: review.createdAt,
-                    whatsapp_numbers: notifications?.whatsappNumbers || [] // Include configured numbers
+                body: JSON.stringify(payload)
+            })
+                .then(res => {
+                    console.log(`[DEBUG] N8N Response Status: ${res.status}`);
+                    return res.text().then(txt => console.log(`[DEBUG] N8N Response Body: ${txt}`));
                 })
-            }).catch(err => console.error('Error sending to N8N:', err));
+                .catch(err => console.error('[DEBUG] Error sending to N8N:', err));
+        } else {
+            console.log(`[DEBUG] No Webhook URL configured.`);
         }
 
         res.json({ message: 'Avaliação recebida com sucesso!', id: review.id });
