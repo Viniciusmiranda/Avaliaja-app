@@ -781,6 +781,8 @@
                         <thead>
                             <tr>
                                 <th>Nome</th>
+                                <th>Telefone</th>
+                                <th>ID Int.</th>
                                 <th>Avaliações</th>
                                 <th>Status</th>
                                 <th style="min-width: 150px;">Ação</th>
@@ -1305,8 +1307,26 @@
             <p style="color: var(--text-muted); margin-bottom: 20px;">Crie um link exclusivo para rastrear as avaliações
                 deste atendente.</p>
 
-            <input type="text" id="attendantNameInput" placeholder="Nome do Atendente (ex: João Silva)"
-                style="width: 100%; padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; margin-bottom: 20px; outline: none;">
+            <input type="hidden" id="attendantIdInput">
+            <div style="margin-bottom:15px">
+                <input type="text" id="attendantNameInput" placeholder="Nome do Atendente (ex: João Silva)"
+                    style="width: 100%; padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; outline: none;">
+            </div>
+
+            <div style="margin-bottom:15px; display:flex; gap:10px">
+                <input type="text" id="attendantPhoneInput" placeholder="Telefone (ex: 11999999999)"
+                    style="flex:1; padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; outline: none;">
+
+                <input type="text" id="attendantIntegrationIdInput" placeholder="ID Integração"
+                    style="flex:1; padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; outline: none;">
+            </div>
+
+            <div style="margin-bottom:20px; display:flex; align-items:center; gap:10px;">
+                <input type="checkbox" id="attendantActiveInput" checked
+                    style="width:20px; height:20px; cursor:pointer;">
+                <label for="attendantActiveInput" style="cursor:pointer; color:#eee;">Atendente Ativo (Link
+                    funciona)</label>
+            </div>
 
             <div id="resultArea"
                 style="display: none; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
@@ -1322,9 +1342,8 @@
             <div style="display: flex; gap: 15px; justify-content: flex-end;">
                 <button onclick="closeAttendantModal()"
                     style="padding: 10px 20px; border: 1px solid rgba(255,255,255,0.3); background: transparent; color: #fff; border-radius: 8px; cursor: pointer;">Fechar</button>
-                <button onclick="generateAttendantLink()"
-                    style="padding: 10px 20px; background: var(--accent-neon); color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">Gerar
-                    Link</button>
+                <button onclick="saveAttendant()"
+                    style="padding: 10px 20px; background: var(--accent-neon); color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">Salvar</button>
             </div>
         </div>
     </div>
@@ -1946,15 +1965,25 @@
             sorted.forEach(att => {
                 const tr = document.createElement('tr');
                 const attColor = getAttendantColor(att.name);
+                const isActive = att.active !== false; // Default true if undefined
+                const statusBadge = isActive
+                    ? '<span style="color:#00e676;">Ativo</span>'
+                    : '<span style="color:#ef4444;">Inativo</span>';
+
                 tr.innerHTML = `
                     <td><b style="color: ${attColor}; font-size: 1.05rem;">${att.name}</b></td>
+                    <td>${att.phone || '-'}</td>
+                    <td>${att.integrationId || '-'}</td>
                     <td>${att._count.reviews} avaliações</td>
-                    <td><span style="color:#00e676;">Ativo</span></td>
+                    <td>${statusBadge}</td>
                     <td style="display:flex; gap:10px;">
-                        <button id="btn-copy-${att.name}" onclick="copyLinkByName('${att.name}')" style="background:rgba(255,255,255,0.1); border:none; color:white; padding:5px 10px; border-radius:5px; cursor:pointer;">
-                           🔗 Copiar
+                        <button onclick='openAttendantModal(${JSON.stringify(att)})' style="background:rgba(255,255,255,0.1); border:none; color:white; padding:5px 10px; border-radius:5px; cursor:pointer;" title="Editar">
+                           ✏️
                         </button>
-                        <button onclick="deleteAttendant('${att.id}', '${att.name}')" style="background:rgba(255,82,82,0.2); border:none; color:#ff5252; padding:5px 10px; border-radius:5px; cursor:pointer;">
+                        <button id="btn-copy-${att.name}" onclick="copyLinkByName('${att.name}')" style="background:rgba(255,255,255,0.1); border:none; color:white; padding:5px 10px; border-radius:5px; cursor:pointer;" title="Copiar Link">
+                           🔗
+                        </button>
+                        <button onclick="deleteAttendant('${att.id}', '${att.name}')" style="background:rgba(255,82,82,0.2); border:none; color:#ff5252; padding:5px 10px; border-radius:5px; cursor:pointer;" title="Excluir">
                            🗑️
                         </button>
                     </td>
@@ -2077,16 +2106,34 @@
         }
 
         // --- MODAL LOGIC ---
-        function openAttendantModal() {
+        function openAttendantModal(data = null) {
             const m = document.getElementById('attendantModal');
             m.classList.add('active');
-            document.getElementById('attendantNameInput').value = '';
-            document.getElementById('resultArea').style.display = 'none';
+
+            if (data) {
+                // Edit Mode
+                document.getElementById('attendantIdInput').value = data.id;
+                document.getElementById('attendantNameInput').value = data.name;
+                document.getElementById('attendantPhoneInput').value = data.phone || '';
+                document.getElementById('attendantIntegrationIdInput').value = data.integrationId || '';
+                document.getElementById('attendantActiveInput').checked = data.active !== false;
+                document.getElementById('resultArea').style.display = 'none';
+            } else {
+                // Create Mode
+                document.getElementById('attendantIdInput').value = '';
+                document.getElementById('attendantNameInput').value = '';
+                document.getElementById('attendantPhoneInput').value = '';
+                document.getElementById('attendantIntegrationIdInput').value = '';
+                document.getElementById('attendantActiveInput').checked = true;
+                document.getElementById('resultArea').style.display = 'none';
+            }
         }
 
         function closeAttendantModal() {
             document.getElementById('attendantModal').classList.remove('active');
-            loadDashboard(); // Refresh list on close
+            // Wait a bit to refresh so the user sees the close animation?
+            // Actually, we should refresh list immediately.
+            loadDashboard();
         }
 
         function getCompSlug() {
@@ -2094,34 +2141,76 @@
             return user.companySlug || 'empresa'; // Fallback
         }
 
-        async function generateAttendantLink() {
+        async function saveAttendant() {
+            const id = document.getElementById('attendantIdInput').value;
             const name = document.getElementById('attendantNameInput').value.trim();
-            if (!name) return;
+            if (!name) return alert("O nome é obrigatório.");
 
-            const btn = document.querySelector('button[onclick="generateAttendantLink()"]');
+            const phone = document.getElementById('attendantPhoneInput').value.trim();
+            const integrationId = document.getElementById('attendantIntegrationIdInput').value.trim();
+            const active = document.getElementById('attendantActiveInput').checked;
+
+            const btn = document.querySelector('button[onclick="saveAttendant()"]');
             const originalText = btn.innerText;
-            btn.innerText = "...";
+            btn.innerText = "Salvando...";
             btn.disabled = true;
 
+            const payload = {
+                name,
+                phone: phone || null,
+                integrationId: integrationId || null,
+                active
+            };
+
             try {
-                const res = await fetch('/api/atendentes', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ name })
-                });
+                let res;
+                if (id) {
+                    // Update
+                    res = await fetch(`/api/atendentes/${id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    // Create
+                    res = await fetch('/api/atendentes', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify(payload)
+                    });
+                }
 
                 if (res.ok) {
-                    const slug = getCompSlug();
-                    const origin = window.location.origin;
-                    // Format: domain.com/SLUG/NAME
-                    const fullLink = `${origin}/${slug}/${encodeURIComponent(name)}`;
+                    const saved = await res.json();
 
-                    document.getElementById('generatedLink').value = fullLink;
-                    document.getElementById('resultArea').style.display = 'block';
+                    if (id) {
+                        alert('Atendente atualizado com sucesso!');
+                        closeAttendantModal();
+                    } else {
+                        // If created, populate link area
+                        const slug = getCompSlug();
+                        const origin = window.location.origin;
+                        const fullLink = `${origin}/${slug}/${encodeURIComponent(saved.name)}`;
+
+                        document.getElementById('generatedLink').value = fullLink;
+                        document.getElementById('resultArea').style.display = 'block';
+                        btn.innerText = "Salvo!";
+
+                        // We also refresh the background list, but don't close modal yet so they can copy link
+                        loadDashboard();
+
+                        setTimeout(() => {
+                            btn.innerText = originalText;
+                            btn.disabled = false;
+                        }, 2000);
+                        return; // Exit early to keep modal open
+                    }
+
                 } else {
-                    alert('Erro ao criar.');
+                    const err = await res.json();
+                    alert('Erro: ' + (err.error || 'Erro desconhecido'));
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error(e); alert('Erro de conexão'); }
 
             btn.innerText = originalText;
             btn.disabled = false;

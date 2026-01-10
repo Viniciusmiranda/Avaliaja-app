@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -43,8 +43,8 @@ model Company {
   logo         String?
   primaryColor String?
   plan         String   @default("GRATIS") // GRATIS, PEQUENAS, GRANDES
-  settings     Json?      // Armazena config flexível (perguntas, ordem, etc)
-  notifications Json?     // Armazena config de integrações (WhatsApp, triggers)
+  settings     String?  // Armazena config flexível (perguntas, ordem, etc) - SQLite no JSON
+  notifications String? // Armazena config de integrações (WhatsApp, triggers) - SQLite no JSON
 
   @@map("empresas")
 }
@@ -53,6 +53,8 @@ model Attendant {
   id        String   @id @default(uuid())
   name      String
   email     String?
+  phone     String? // Add phone
+  integrationId String? // Add Integration ID
   active    Boolean  @default(true)
   companyId String
   company   Company  @relation(fields: [companyId], references: [id])
