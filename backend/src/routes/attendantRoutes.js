@@ -54,6 +54,10 @@ router.post('/', auth, async (req, res) => {
 });
 
 // Update Attendant (Private & Scoped)
+router.put('/', (req, res) => {
+    res.status(400).json({ error: "ID do atendente ausente na requisição." });
+});
+
 router.put('/:id', auth, async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;

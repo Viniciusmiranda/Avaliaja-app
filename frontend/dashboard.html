@@ -2164,7 +2164,7 @@
         }
 
         async function saveAttendant() {
-            const id = document.getElementById('attendantIdInput').value;
+            const id = document.getElementById('attendantIdInput').value.trim();
             const name = document.getElementById('attendantNameInput').value.trim();
             if (!name) return alert("O nome é obrigatório.");
 
