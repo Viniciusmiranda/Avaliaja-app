@@ -1405,537 +1405,445 @@
         </div>
     </div>
 
-    <!-- SUGGESTION MODAL -->
-    <div class="modal-overlay" id="suggestionModal">
-        <div class="modal-content glass-panel" style="max-width: 500px;">
-            <h2 style="margin-bottom: 20px;">Nova Sugestão</h2>
-            <form onsubmit="submitSuggestion(event)">
-                <textarea id="suggestionText" placeholder="Descreva sua sugestão..." required
-                    style="width: 100%; height: 120px; padding: 12px; margin-bottom: 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; resize: vertical;"></textarea>
-                <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                    <button type="button" class="btn-secondary" onclick="closeSuggestionModal()">Cancelar</button>
-                    <button type="submit" class="btn-glow">Enviar Sugestão</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <script>
-        // ... (Existing Scripts) ...
-        // --- SUGGESTIONS LOGIC ---
-        async function loadSuggestions() {
-            const list = document.getElementById('suggestionsList');
-            if (!list) return;
-            // list.innerHTML = '<p style="text-align:center; color:#ccc;">Carregando...</p>';
+        // --- AUTH & STATE ---
+        const token = localStorage.getItem('token');
+        if (!token) window.location.href = 'index.html';
 
+        let globalData = {
+            metrics: {},
+            reviews: [],
+            reports: [], // New for Reports Tab
+            attendants: []
+        };
+
+        // --- NAVIGATION LOGIC ---
+        function toggleSidebar() {
+            document.querySelector('.sidebar').classList.toggle('active');
+            document.querySelector('.sidebar-overlay').classList.toggle('active');
+        }
+
+        function switchView(viewName, navElement) {
+            // Update Nav
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            if (navElement) navElement.classList.add('active');
+
+            // Hide all views
+            document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
+
+            // Show selected
+            document.getElementById(`view-${viewName}`).style.display = 'block';
+
+            // Update Header
+            const titleMap = {
+                'dashboard': 'Visão Geral',
+                'attendants': 'Gestão de Atendentes',
+                'relatorios': 'Relatórios e Análise de Performance', // New Title
+                'personalizacao': 'Personalização',
+                'ajustes': 'Minha Conta',
+                'updates': 'Atualizações do Sistema',
+                'integracoes': 'Integrações',
+                'gestores': 'Gestores',
+                'suporte': 'Suporte'
+            };
+            const title = titleMap[viewName] || 'Painel';
+            document.getElementById('pageTitle').innerText = title;
+
+            // Handle section visibility (Supports both ID formats: view-NAME or NAMESection)
+            document.querySelectorAll('.view-section, .content-section').forEach(el => el.style.display = 'none');
+
+            const viewId = document.getElementById(`view-${viewName}`);
+            const sectionId = document.getElementById(`${viewName}Section`);
+
+            if (viewId) viewId.style.display = 'block';
+            if (sectionId) sectionId.style.display = 'block';
+        }
+
+        function switchTab(tabName, element) {
+            // Update Active Class
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            if (element) {
+                element.classList.add('active');
+            } else {
+                // Try to find by onclick
+                const found = document.querySelector(`.nav-item[onclick*="'${tabName}'"]`);
+                if (found) found.classList.add('active');
+            }
+
+            switchView(tabName);
+
+            // Lazy Load Actions
+            if (tabName === 'gestores') loadUsers();
+            if (tabName === 'attendants') renderAttendantsList(globalData.attendants);
+            if (tabName === 'updates') loadChangelog();
+            if (tabName === 'suporte') loadChangelog(); // Load updates in Support tab too
+            if (tabName === 'relatorios') applyReportFilters(true); // Load initial reports
+
+            // Handle "Novo Atendente" Button Logic
+            const btnAdd = document.getElementById('btnAddAttendant');
+            if (btnAdd) {
+                if (tabName === 'attendants') {
+                    btnAdd.style.display = 'flex';
+                } else {
+                    btnAdd.style.display = 'none';
+                }
+            }
+
+            if (tabName === 'integracoes') loadIntegrations();
+            if (tabName === 'suporte') loadSuggestions();
+        }
+
+        async function loadChangelog() {
+            const container = document.getElementById('changelogContent');
             try {
-                const res = await fetch('/api/suggestions');
-                const suggestions = await res.json();
+                const res = await fetch('/changelog.md');
+                if (!res.ok) throw new Error("Erro ao carregar");
 
-                list.innerHTML = '';
-                if (suggestions.length === 0) {
-                    list.innerHTML = '<p style="text-align:center; color:#666;">Nenhuma sugestão ainda. Seja o primeiro!</p>';
-                    return;
+                // Check if we accidentally got HTML (login page or app shell)
+                const contentType = res.headers.get("content-type");
+                if (contentType && contentType.includes("text/html")) {
+                    throw new Error("Arquivo não encontrado (Retornou HTML)");
                 }
 
-                suggestions.forEach(s => {
-                    const div = document.createElement('div');
-                    div.style.cssText = 'background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; display: flex; align-items: center; gap: 15px;';
-                    div.innerHTML = `
-                        <div style="flex: 1;">
-                            <p style="margin: 0; color: #fff; font-size: 1rem;">${s.text}</p>
-                            <span style="font-size: 0.75rem; color: #666;">${new Date(s.createdAt).toLocaleDateString()}</span>
-                        </div>
-                        <div style="display: flex; gap: 10px; align-items: center;">
-                            <button onclick="voteSuggestion(${s.id}, 'like')" class="vote-btn" style="background: rgba(0,255,0,0.1); color: #4ade80; border: 1px solid rgba(0,255,0,0.2); padding: 5px 10px; border-radius: 6px; cursor: pointer;">
-                                👍 ${s.likes}
-                            </button>
-                            <button onclick="voteSuggestion(${s.id}, 'dislike')" class="vote-btn" style="background: rgba(255,0,0,0.1); color: #f87171; border: 1px solid rgba(255,0,0,0.2); padding: 5px 10px; border-radius: 6px; cursor: pointer;">
-                                👎 ${s.dislikes}
-                            </button>
-                        </div>
-                    `;
-                    list.appendChild(div);
-                });
-            } catch (e) { console.error(e); list.innerHTML = '<p style="color:red">Erro ao carregar.</p>'; }
-        }
-
-        async function voteSuggestion(id, type) {
-            try {
-                const res = await fetch(`/api/suggestions/${id}/vote`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ type })
-                });
-                if (res.ok) {
-                    loadSuggestions();
-                }
-            } catch (e) { console.error(e); }
-        }
-
-        function openSuggestionModal() {
-            document.getElementById('suggestionModal').classList.add('active');
-        }
-        function closeSuggestionModal() {
-            document.getElementById('suggestionModal').classList.remove('active');
-        }
-
-        async function submitSuggestion(e) {
-            e.preventDefault();
-            const text = document.getElementById('suggestionText').value;
-            if (!text) return;
-
-            try {
-                const res = await fetch('/api/suggestions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ text })
-                });
-                if (res.ok) {
-                    alert('Sugestão enviada!');
-                    closeSuggestionModal();
-                    document.getElementById('suggestionText').value = '';
-                    loadSuggestions();
-                } else alert('Erro ao enviar.');
-            } catch (e) { console.error(e); }
-        }
-    </script>
-    // --- AUTH & STATE ---
-    const token = localStorage.getItem('token');
-    if (!token) window.location.href = 'index.html';
-
-    let globalData = {
-    metrics: {},
-    reviews: [],
-    reports: [], // New for Reports Tab
-    attendants: []
-    };
-
-    // --- NAVIGATION LOGIC ---
-    function toggleSidebar() {
-    document.querySelector('.sidebar').classList.toggle('active');
-    document.querySelector('.sidebar-overlay').classList.toggle('active');
-    }
-
-    function switchView(viewName, navElement) {
-    // Update Nav
-    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-    if (navElement) navElement.classList.add('active');
-
-    // Hide all views
-    document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
-
-    // Show selected
-    document.getElementById(`view-${viewName}`).style.display = 'block';
-
-    // Update Header
-    const titleMap = {
-    'dashboard': 'Visão Geral',
-    'attendants': 'Gestão de Atendentes',
-    'relatorios': 'Relatórios e Análise de Performance', // New Title
-    'personalizacao': 'Personalização',
-    'ajustes': 'Minha Conta',
-    'updates': 'Atualizações do Sistema',
-    'integracoes': 'Integrações',
-    'gestores': 'Gestores',
-    'suporte': 'Suporte'
-    };
-    const title = titleMap[viewName] || 'Painel';
-    document.getElementById('pageTitle').innerText = title;
-
-    // Handle section visibility (Supports both ID formats: view-NAME or NAMESection)
-    document.querySelectorAll('.view-section, .content-section').forEach(el => el.style.display = 'none');
-
-    const viewId = document.getElementById(`view-${viewName}`);
-    const sectionId = document.getElementById(`${viewName}Section`);
-
-    if (viewId) viewId.style.display = 'block';
-    if (sectionId) sectionId.style.display = 'block';
-    }
-
-    function switchTab(tabName, element) {
-    // Update Active Class
-    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-    if (element) {
-    element.classList.add('active');
-    } else {
-    // Try to find by onclick
-    const found = document.querySelector(`.nav-item[onclick*="'${tabName}'"]`);
-    if (found) found.classList.add('active');
-    }
-
-    switchView(tabName);
-
-    // Lazy Load Actions
-    if (tabName === 'gestores') loadUsers();
-    if (tabName === 'attendants') renderAttendantsList(globalData.attendants);
-    if (tabName === 'updates') loadChangelog();
-    if (tabName === 'suporte') loadChangelog(); // Load updates in Support tab too
-    if (tabName === 'relatorios') applyReportFilters(true); // Load initial reports
-
-    // Handle "Novo Atendente" Button Logic
-    const btnAdd = document.getElementById('btnAddAttendant');
-    if (btnAdd) {
-    if (tabName === 'attendants') {
-    btnAdd.style.display = 'flex';
-    } else {
-    btnAdd.style.display = 'none';
-    }
-    }
-
-    if (tabName === 'integracoes') loadIntegrations();
-    if (tabName === 'suporte') loadSuggestions();
-    }
-
-    async function loadChangelog() {
-    const container = document.getElementById('changelogContent');
-    try {
-    const res = await fetch('/changelog.md');
-    if (!res.ok) throw new Error("Erro ao carregar");
-
-    // Check if we accidentally got HTML (login page or app shell)
-    const contentType = res.headers.get("content-type");
-    if (contentType && contentType.includes("text/html")) {
-    throw new Error("Arquivo não encontrado (Retornou HTML)");
-    }
-
-    const text = await res.text();
-    // Parse using Marked (if available) or raw text
-    container.innerHTML = typeof marked !== 'undefined' ? marked.parse(text) : `
+                const text = await res.text();
+                // Parse using Marked (if available) or raw text
+                container.innerHTML = typeof marked !== 'undefined' ? marked.parse(text) : `
     <pre>${text}</pre>`;
-    } catch (e) {
-    console.error(e);
-    container.innerHTML = "Não foi possível carregar o histórico de versões.";
-    }
-    }
+            } catch (e) {
+                console.error(e);
+                container.innerHTML = "Não foi possível carregar o histórico de versões.";
+            }
+        }
 
-    // --- CUSTOMIZATION LOGIC ---
-    async function loadCustomization() {
-    try {
-    const res = await fetch('/api/company/settings', {
-    headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (res.ok) {
-    const data = await res.json();
+        // --- CUSTOMIZATION LOGIC ---
+        async function loadCustomization() {
+            try {
+                const res = await fetch('/api/company/settings', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
 
-    // Populate Fields
-    if (data.primaryColor) document.getElementById('colorInput').value = data.primaryColor;
+                    // Populate Fields
+                    if (data.primaryColor) document.getElementById('colorInput').value = data.primaryColor;
 
-    if (data.settings) {
-    const s = typeof data.settings === 'string' ? JSON.parse(data.settings) : data.settings;
-    if (s.questionTitle) document.getElementById('questionTitleInput').value = s.questionTitle;
-    if (s.redirectUrl) document.getElementById('redirectUrlInput').value = s.redirectUrl;
-    if (s.showObservation !== undefined) document.getElementById('showObsInput').checked = s.showObservation;
-    }
+                    if (data.settings) {
+                        const s = typeof data.settings === 'string' ? JSON.parse(data.settings) : data.settings;
+                        if (s.questionTitle) document.getElementById('questionTitleInput').value = s.questionTitle;
+                        if (s.redirectUrl) document.getElementById('redirectUrlInput').value = s.redirectUrl;
+                        if (s.showObservation !== undefined) document.getElementById('showObsInput').checked = s.showObservation;
+                    }
 
-    if (data.notifications) {
-    // Load N8N Webhook
-    if (data.notifications.webhookUrl && document.getElementById('n8nWebhookInput')) {
-    document.getElementById('n8nWebhookInput').value = data.notifications.webhookUrl;
-    }
-    // Load WhatsApp Numbers (existing logic might need check)
-    if (data.notifications.whatsappNumbers && document.getElementById('whatsappInput')) {
-    document.getElementById('whatsappInput').value = data.notifications.whatsappNumbers.join(', ');
-    }
-    if (data.notifications.notifyRule && document.getElementById('notifyRuleInput')) {
-    document.getElementById('notifyRuleInput').value = data.notifications.notifyRule;
-    }
-    }
+                    if (data.notifications) {
+                        // Load N8N Webhook
+                        if (data.notifications.webhookUrl && document.getElementById('n8nWebhookInput')) {
+                            document.getElementById('n8nWebhookInput').value = data.notifications.webhookUrl;
+                        }
+                        // Load WhatsApp Numbers (existing logic might need check)
+                        if (data.notifications.whatsappNumbers && document.getElementById('whatsappInput')) {
+                            document.getElementById('whatsappInput').value = data.notifications.whatsappNumbers.join(', ');
+                        }
+                        if (data.notifications.notifyRule && document.getElementById('notifyRuleInput')) {
+                            document.getElementById('notifyRuleInput').value = data.notifications.notifyRule;
+                        }
+                    }
 
-    if (data.logo) {
-    const img = document.getElementById('logoPreviewImg');
-    const container = document.getElementById('logoPreviewContainer');
-    if (img && container) {
-    img.src = data.logo;
-    container.style.display = 'block';
-    }
-    if (document.getElementById('sidebarLogo')) {
-    const sbLogo = document.getElementById('sidebarLogo');
-    sbLogo.src = data.logo;
-    // If it's the default logo path, add filter, else remove it
-    if (data.logo.includes('logo.png')) {
-    sbLogo.classList.add('logo-default-filter');
-    } else {
-    sbLogo.classList.remove('logo-default-filter');
-    }
-    }
+                    if (data.logo) {
+                        const img = document.getElementById('logoPreviewImg');
+                        const container = document.getElementById('logoPreviewContainer');
+                        if (img && container) {
+                            img.src = data.logo;
+                            container.style.display = 'block';
+                        }
+                        if (document.getElementById('sidebarLogo')) {
+                            const sbLogo = document.getElementById('sidebarLogo');
+                            sbLogo.src = data.logo;
+                            // If it's the default logo path, add filter, else remove it
+                            if (data.logo.includes('logo.png')) {
+                                sbLogo.classList.add('logo-default-filter');
+                            } else {
+                                sbLogo.classList.remove('logo-default-filter');
+                            }
+                        }
 
-    // UPDATE MOCKUP LOGO
-    const iframe = document.getElementById('mobilePreviewIframe');
-    if (iframe) {
-    iframe.onload = () => {
-    updateMockupLogo(data.logo);
-    // Inject Mockup Submit Disable
-    if (iframe.contentWindow) {
-    iframe.contentWindow.submitToApi = async () => alert('Modo de Simulação: Avaliação não enviada.');
-    }
-    };
-    // Also try immediately if already loaded
-    updateMockupLogo(data.logo);
-    }
-    }
+                        // UPDATE MOCKUP LOGO
+                        const iframe = document.getElementById('mobilePreviewIframe');
+                        if (iframe) {
+                            iframe.onload = () => {
+                                updateMockupLogo(data.logo);
+                                // Inject Mockup Submit Disable
+                                if (iframe.contentWindow) {
+                                    iframe.contentWindow.submitToApi = async () => alert('Modo de Simulação: Avaliação não enviada.');
+                                }
+                            };
+                            // Also try immediately if already loaded
+                            updateMockupLogo(data.logo);
+                        }
+                    }
 
-    // Load Questions
-    const qList = document.getElementById('extraQuestionsList');
-    if (qList && data.settings && data.settings.questions) {
-    qList.innerHTML = '';
-    data.settings.questions.forEach(q => addQuestionField(q));
-    }
-    }
-    } catch (e) { console.error("Error loading settings", e); }
-    }
+                    // Load Questions
+                    const qList = document.getElementById('extraQuestionsList');
+                    if (qList && data.settings && data.settings.questions) {
+                        qList.innerHTML = '';
+                        data.settings.questions.forEach(q => addQuestionField(q));
+                    }
+                }
+            } catch (e) { console.error("Error loading settings", e); }
+        }
 
-    async function saveCustomization(e) {
-    e.preventDefault();
-    const btn = e.target.querySelector('button');
-    const originalText = btn.innerText;
-    btn.innerText = "Salvando...";
-    btn.disabled = true;
+        async function saveCustomization(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            const originalText = btn.innerText;
+            btn.innerText = "Salvando...";
+            btn.disabled = true;
 
-    const formData = new FormData();
-    formData.append('primaryColor', document.getElementById('colorInput').value);
+            const formData = new FormData();
+            formData.append('primaryColor', document.getElementById('colorInput').value);
 
-    const settings = {
-    questionTitle: document.getElementById('questionTitleInput').value,
-    redirectUrl: document.getElementById('redirectUrlInput').value,
-    showObservation: document.getElementById('showObsInput').checked,
-    questions: []
-    };
+            const settings = {
+                questionTitle: document.getElementById('questionTitleInput').value,
+                redirectUrl: document.getElementById('redirectUrlInput').value,
+                showObservation: document.getElementById('showObsInput').checked,
+                questions: []
+            };
 
-    // Collect Questions
-    document.querySelectorAll('.extra-question-input').forEach(inp => {
-    if (inp.value.trim()) settings.questions.push(inp.value.trim());
-    });
+            // Collect Questions
+            document.querySelectorAll('.extra-question-input').forEach(inp => {
+                if (inp.value.trim()) settings.questions.push(inp.value.trim());
+            });
 
-    formData.append('settings', JSON.stringify(settings));
+            formData.append('settings', JSON.stringify(settings));
 
-    const logoFile = document.getElementById('logoInput').files[0];
-    if (logoFile) {
-    formData.append('logo', logoFile);
-    }
+            const logoFile = document.getElementById('logoInput').files[0];
+            if (logoFile) {
+                formData.append('logo', logoFile);
+            }
 
-    try {
-    const res = await fetch('/api/company/settings', {
-    method: 'PUT',
-    headers: { 'Authorization': `Bearer ${token}` }, // No Content-Type for FormData
-    body: formData
-    });
+            try {
+                const res = await fetch('/api/company/settings', {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}` }, // No Content-Type for FormData
+                    body: formData
+                });
 
-    if (res.ok) {
-    const data = await res.json();
-    alert('Alterações salvas com sucesso!');
-    // Update preview immediately if logo changed
-    if (data.company.logo) {
-    const img = document.getElementById('logoPreviewImg');
-    const container = document.getElementById('logoPreviewContainer');
-    if (img && container) {
-    img.src = data.company.logo;
-    container.style.display = 'block';
-    }
-    if (document.getElementById('sidebarLogo')) {
-    const sbLogo = document.getElementById('sidebarLogo');
-    sbLogo.src = data.company.logo;
-    // Check if default
-    if (data.company.logo.includes('logo.png')) {
-    sbLogo.classList.add('logo-default-filter');
-    } else {
-    sbLogo.classList.remove('logo-default-filter');
-    }
-    }
-    }
-    } else {
-    alert('Erro ao salvar.');
-    }
-    } catch (e) { console.error(e); }
+                if (res.ok) {
+                    const data = await res.json();
+                    alert('Alterações salvas com sucesso!');
+                    // Update preview immediately if logo changed
+                    if (data.company.logo) {
+                        const img = document.getElementById('logoPreviewImg');
+                        const container = document.getElementById('logoPreviewContainer');
+                        if (img && container) {
+                            img.src = data.company.logo;
+                            container.style.display = 'block';
+                        }
+                        if (document.getElementById('sidebarLogo')) {
+                            const sbLogo = document.getElementById('sidebarLogo');
+                            sbLogo.src = data.company.logo;
+                            // Check if default
+                            if (data.company.logo.includes('logo.png')) {
+                                sbLogo.classList.add('logo-default-filter');
+                            } else {
+                                sbLogo.classList.remove('logo-default-filter');
+                            }
+                        }
+                    }
+                } else {
+                    alert('Erro ao salvar.');
+                }
+            } catch (e) { console.error(e); }
 
-    btn.innerText = originalText;
-    btn.disabled = false;
-    }
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
 
-    // --- NEW HELPER FUNCTIONS ---
-    function checkPlanLimits(plan, count) {
-    const limits = { 'GRATIS': 5, 'PEQUENAS': 20, 'GRANDES': Infinity };
-    const limit = limits[plan] || 5;
-    const btn = document.querySelector('button[onclick="openAttendantModal()"]');
+        // --- NEW HELPER FUNCTIONS ---
+        function checkPlanLimits(plan, count) {
+            const limits = { 'GRATIS': 5, 'PEQUENAS': 20, 'GRANDES': Infinity };
+            const limit = limits[plan] || 5;
+            const btn = document.querySelector('button[onclick="openAttendantModal()"]');
 
-    if (btn) {
-    if (count >= limit) {
-    btn.disabled = true;
-    btn.style.opacity = '0.5';
-    btn.title = "Limite do plano atingido";
-    } else {
-    btn.disabled = false;
-    btn.style.opacity = '1';
-    btn.title = "";
-    }
-    }
-    }
+            if (btn) {
+                if (count >= limit) {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                    btn.title = "Limite do plano atingido";
+                } else {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.title = "";
+                }
+            }
+        }
 
-    // --- COLOR GENERATOR ---
-    // Vivid Neon Palette for Dark Mode
-    const attendantColors = [
-    '#FF0055', // Neon Red
-    '#00FF99', // Neon Green
-    '#00CCFF', // Neon Blue
-    '#FFDD00', // Neon Yellow
-    '#FF6600', // Neon Orange
-    '#CC00FF', // Neon Purple
-    '#FF00AA', // Hot Pink
-    '#00FFFF', // Cyan
-    '#FF3333', // Bright Red
-    '#39FF14', // Electric Green
-    '#7DF9FF', // Electric Blue
-    '#FF1493', // Deep Pink
-    '#FFFF00', // Electric Yellow
-    '#BF00FF', // Electric Purple
-    ];
+        // --- COLOR GENERATOR ---
+        // Vivid Neon Palette for Dark Mode
+        const attendantColors = [
+            '#FF0055', // Neon Red
+            '#00FF99', // Neon Green
+            '#00CCFF', // Neon Blue
+            '#FFDD00', // Neon Yellow
+            '#FF6600', // Neon Orange
+            '#CC00FF', // Neon Purple
+            '#FF00AA', // Hot Pink
+            '#00FFFF', // Cyan
+            '#FF3333', // Bright Red
+            '#39FF14', // Electric Green
+            '#7DF9FF', // Electric Blue
+            '#FF1493', // Deep Pink
+            '#FFFF00', // Electric Yellow
+            '#BF00FF', // Electric Purple
+        ];
 
-    function getAttendantColor(name) {
-    if (!name) return '#ffffff';
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) { hash=name.charCodeAt(i) + ((hash << 5) - hash); } const index=Math.abs(hash
-        % attendantColors.length); return attendantColors[index]; } function renderRecentReviews(reviews,
-        targetTbodyId='recentReviewsBody' ) { const tbody=document.getElementById(targetTbodyId); if (!tbody) return; //
-        Clear logic if (globalData.reviewsPage===1 && targetTbodyId==='recentReviewsBody' ) tbody.innerHTML='' ; const
-        isDashboard=targetTbodyId==='recentReviewsBody' ; reviews.forEach(item=> {
-        const tr = document.createElement('tr');
-        const starsHtml = '★'.repeat(item.stars) + '☆'.repeat(5 - item.stars);
-        const attName = item.attendant ? item.attendant.name : 'Geral';
-        const attColor = getAttendantColor(attName);
-        const date = new Date(item.createdAt);
+        function getAttendantColor(name) {
+            if (!name) return '#ffffff';
+            let hash = 0;
+            for (let i = 0; i < name.length; i++) { hash = name.charCodeAt(i) + ((hash << 5) - hash); } const index = Math.abs(hash
+                % attendantColors.length); return attendantColors[index];
+        } function renderRecentReviews(reviews,
+            targetTbodyId = 'recentReviewsBody') {
+            const tbody = document.getElementById(targetTbodyId); if (!tbody) return; //
+        Clear logic if (globalData.reviewsPage === 1 && targetTbodyId === 'recentReviewsBody') tbody.innerHTML = ''; const
+                isDashboard = targetTbodyId === 'recentReviewsBody'; reviews.forEach(item => {
+                    const tr = document.createElement('tr');
+                    const starsHtml = '★'.repeat(item.stars) + '☆'.repeat(5 - item.stars);
+                    const attName = item.attendant ? item.attendant.name : 'Geral';
+                    const attColor = getAttendantColor(attName);
+                    const date = new Date(item.createdAt);
 
-        const baseColumns = `
+                    const baseColumns = `
         <td style="white-space: nowrap;"><span class="badge badge-attendant"
                 style="color: ${attColor}; border: 1px solid ${attColor}; background: ${attColor}33; font-weight: bold; text-shadow: 0 0 10px ${attColor}44;">${attName}</span>
         </td>
         <td style="white-space: nowrap;">${date.toLocaleDateString()} <small>${date.toLocaleTimeString().slice(0,
-                5)}</small></td>
+                        5)}</small></td>
         <td><span class="stars-display">${starsHtml}</span></td>
         <td>${item.comment || '-'}</td>
         `;
 
-        if (isDashboard) {
-        tr.innerHTML = baseColumns;
-        } else {
-        // Reports View
-        const ipDisplay = item.ip ? item.ip : 'N/A';
-        const mapsLink = item.location ? `<a href="${item.location}" target="_blank" style="color: #4facfe;">📍 Ver
+                    if (isDashboard) {
+                        tr.innerHTML = baseColumns;
+                    } else {
+                        // Reports View
+                        const ipDisplay = item.ip ? item.ip : 'N/A';
+                        const mapsLink = item.location ? `<a href="${item.location}" target="_blank" style="color: #4facfe;">📍 Ver
             Mapa</a>` : '-';
-        const fullColumns = baseColumns + `
+                        const fullColumns = baseColumns + `
         <td>${ipDisplay}</td>
         <td>${mapsLink}</td>
         <td>${item.city || '-'} / ${item.state || '-'}</td>
         <!-- Device Column Removed -->
         `;
-        tr.innerHTML = fullColumns;
-        }
-        tbody.appendChild(tr);
-        });
+                        tr.innerHTML = fullColumns;
+                    }
+                    tbody.appendChild(tr);
+                });
         }
 
         // --- REPORTS & FILTERING LOGIC ---
 
         async function applyReportFilters(reset = false) {
-        const tbody = document.getElementById('reportsTableBody');
-        const btn = document.getElementById('btnLoadMoreReports');
+            const tbody = document.getElementById('reportsTableBody');
+            const btn = document.getElementById('btnLoadMoreReports');
 
-        if (reset) {
-        globalData.reports = [];
-        globalData.reportsPage = 1;
-        tbody.innerHTML = '<tr>
-            <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">Carregando dados...
-            </td>
-        </tr>';
-        if (btn) btn.style.display = 'inline-block';
-        }
+            if (reset) {
+                globalData.reports = [];
+                globalData.reportsPage = 1;
+                tbody.innerHTML = '<tr>
+                    < td colspan = "8" style = "text-align: center; padding: 40px; color: var(--text-muted);" > Carregando dados...
+            </td >
+        </tr > ';
+                if (btn) btn.style.display = 'inline-block';
+            }
 
-        // Get Filter Values
-        const start = document.getElementById('reportStartDate').value;
-        const end = document.getElementById('reportEndDate').value;
-        const search = document.getElementById('reportSearchInput').value;
+            // Get Filter Values
+            const start = document.getElementById('reportStartDate').value;
+            const end = document.getElementById('reportEndDate').value;
+            const search = document.getElementById('reportSearchInput').value;
 
-        // Build Query
-        const params = new URLSearchParams({
-        page: globalData.reportsPage || 1,
-        limit: 30
-        });
-        if (start) params.append('startDate', start);
-        if (end) params.append('endDate', end);
-        if (search) params.append('search', search);
+            // Build Query
+            const params = new URLSearchParams({
+                page: globalData.reportsPage || 1,
+                limit: 30
+            });
+            if (start) params.append('startDate', start);
+            if (end) params.append('endDate', end);
+            if (search) params.append('search', search);
 
-        try {
-        const res = await fetch(`/api/avaliacoes/list?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-        });
+            try {
+                const res = await fetch(`/api/avaliacoes/list?${params.toString()}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
 
-        if (!res.ok) throw new Error("Erro na API");
+                if (!res.ok) throw new Error("Erro na API");
 
-        const newReviews = await res.json();
+                const newReviews = await res.json();
 
-        if (reset) tbody.innerHTML = ''; // Clear loading message
+                if (reset) tbody.innerHTML = ''; // Clear loading message
 
-        if (newReviews.length === 0 && reset) {
-        tbody.innerHTML = '<tr>
-            <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">Nenhuma avaliação
-                encontrada com estes filtros.</td>
-        </tr>';
-        if (btn) btn.style.display = 'none';
-        return;
-        }
+                if (newReviews.length === 0 && reset) {
+                    tbody.innerHTML = '<tr>
+                        < td colspan = "8" style = "text-align: center; padding: 40px; color: var(--text-muted);" > Nenhuma avaliação
+                encontrada com estes filtros.</td >
+        </tr > ';
+                    if (btn) btn.style.display = 'none';
+                    return;
+                }
 
-        if (newReviews.length > 0) {
-        // Store/Append Data
-        globalData.reports = reset ? newReviews : [...globalData.reports, ...newReviews];
-        renderRecentReviews(newReviews, 'reportsTableBody');
-        } else {
-        if (btn) {
-        btn.innerText = "Fim dos resultados.";
-        btn.disabled = true;
-        setTimeout(() => { btn.style.display = 'none'; btn.disabled = false; btn.innerText = "Carregar Mais Avaliações";
-        }, 3000);
-        }
-        }
+                if (newReviews.length > 0) {
+                    // Store/Append Data
+                    globalData.reports = reset ? newReviews : [...globalData.reports, ...newReviews];
+                    renderRecentReviews(newReviews, 'reportsTableBody');
+                } else {
+                    if (btn) {
+                        btn.innerText = "Fim dos resultados.";
+                        btn.disabled = true;
+                        setTimeout(() => {
+                            btn.style.display = 'none'; btn.disabled = false; btn.innerText = "Carregar Mais Avaliações";
+                        }, 3000);
+                    }
+                }
 
-        } catch (e) {
-        console.error(e);
-        tbody.innerHTML = '<tr>
-            <td colspan="8" style="text-align: center; padding: 20px; color: #ef4444;">Erro ao carregar dados. Tente
-                novamente.</td>
-        </tr>';
-        }
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = `<tr>
+                    <td colspan="8" style="text-align: center; padding: 20px; color: #ef4444;">Erro ao carregar dados. Tente novamente.</td>
+                </tr>`;
+            }
         }
 
         async function loadMoreReviews(targetId) {
-        // Handle Dashboard Loading
-        if (!targetId || targetId === 'recentReviewsBody') {
-        const btn = document.getElementById('btnLoadMore');
-        if (btn) btn.innerText = "Carregando...";
+            // Handle Dashboard Loading
+            if (!targetId || targetId === 'recentReviewsBody') {
+                const btn = document.getElementById('btnLoadMore');
+                if (btn) btn.innerText = "Carregando...";
 
-        globalData.reviewsPage = (globalData.reviewsPage || 1) + 1;
+                globalData.reviewsPage = (globalData.reviewsPage || 1) + 1;
 
-        try {
-        const res = await fetch(`/api/avaliacoes/list?page=${globalData.reviewsPage}&limit=30`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const newReviews = await res.json();
-        if (newReviews.length > 0) {
-        renderRecentReviews(newReviews, 'recentReviewsBody');
-        if (btn) btn.innerText = "Carregar Mais...";
-        } else {
-        if (btn) { btn.innerText = "Fim."; btn.disabled = true; }
-        }
-        } catch (e) { console.error(e); }
-        return;
-        }
+                try {
+                    const res = await fetch(`/api/avaliacoes/list?page=${globalData.reviewsPage}&limit=30`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const newReviews = await res.json();
+                    if (newReviews.length > 0) {
+                        renderRecentReviews(newReviews, 'recentReviewsBody');
+                        if (btn) btn.innerText = "Carregar Mais...";
+                    } else {
+                        if (btn) { btn.innerText = "Fim."; btn.disabled = true; }
+                    }
+                } catch (e) { console.error(e); }
+                return;
+            }
 
-        if (targetId === 'reportsTableBody') {
-        globalData.reportsPage = (globalData.reportsPage || 1) + 1;
-        const btn = document.getElementById('btnLoadMoreReports');
-        if (btn) btn.innerText = "Carregando...";
-        applyReportFilters(false).then(() => {
-        if (btn) btn.innerText = "Carregar Mais Avaliações";
-        });
-        }
+            if (targetId === 'reportsTableBody') {
+                globalData.reportsPage = (globalData.reportsPage || 1) + 1;
+                const btn = document.getElementById('btnLoadMoreReports');
+                if (btn) btn.innerText = "Carregando...";
+                applyReportFilters(false).then(() => {
+                    if (btn) btn.innerText = "Carregar Mais Avaliações";
+                });
+            }
         }
 
         // --- INIT ---
@@ -1943,167 +1851,178 @@
         loadCustomization(); // Fetch settings on load
 
         function logout() {
-        localStorage.clear();
-        window.location.href = '/';
+            localStorage.clear();
+            window.location.href = '/';
         }
 
         // --- DATA LOADING ---
         async function loadDashboard() {
-        try {
-        const res = await fetch('/api/avaliacoes/dashboard', {
-        headers: { 'Authorization': `Bearer ${token}` }
-        });
+            try {
+                const res = await fetch('/api/avaliacoes/dashboard', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
 
-        if (!res.ok) throw new Error("Falha API");
+                if (!res.ok) throw new Error("Falha API");
 
-        const data = await res.json();
-        globalData = { ...globalData, ...data, reviewsPage: 1 }; // Reset page
+                const data = await res.json();
+                globalData = { ...globalData, ...data, reviewsPage: 1 }; // Reset page
 
-        if (planBadge) {
-        planBadge.innerText = `PLANO ${data.plan || 'GRATIS'}`;
-        // Show only if GRATIS
-        if ((data.plan || 'GRATIS') === 'GRATIS') {
-        planBadge.style.display = 'inline-block';
-        } else {
-        planBadge.style.display = 'none';
-        }
-        }
+                if (planBadge) {
+                    planBadge.innerText = `PLANO ${data.plan || 'GRATIS'}`;
+                    // Show only if GRATIS
+                    if ((data.plan || 'GRATIS') === 'GRATIS') {
+                        planBadge.style.display = 'inline-block';
+                    } else {
+                        planBadge.style.display = 'none';
+                    }
+                }
 
-        // UPDATE PLAN CARDS
-        const currentPlan = data.plan || 'GRATIS';
-        document.querySelectorAll('.plan-card').forEach(card => {
-        // Reset
-        card.style.border = "1px solid transparent";
-        card.style.background = "rgba(255,255,255,0.05)";
-        const btn = card.querySelector('a, button');
-        if (btn.tagName === 'BUTTON') {
-        // Reset 'Atual' button check
-        // If it's the current plan card, disable it. If not (downgrade?), maybe keep disabled or hide.
-        // But for simplicity, we re-render buttons via logic below or just class toggle.
-        // Actually simpler:
-        }
-        });
+                // UPDATE PLAN CARDS
+                const currentPlan = data.plan || 'GRATIS';
+                document.querySelectorAll('.plan-card').forEach(card => {
+                    // Reset
+                    card.style.border = "1px solid transparent";
+                    card.style.background = "rgba(255,255,255,0.05)";
+                    const btn = card.querySelector('a, button');
+                    if (btn.tagName === 'BUTTON') {
+                        // Reset 'Atual' button check
+                        // If it's the current plan card, disable it. If not (downgrade?), maybe keep disabled or hide.
+                        // But for simplicity, we re-render buttons via logic below or just class toggle.
+                        // Actually simpler:
+                    }
+                });
 
-        // Highlight Current
-        const activeCard = document.getElementById(`plan-${currentPlan}`);
-        if (activeCard) {
-        activeCard.style.border = "2px solid var(--accent)";
-        activeCard.style.background = "rgba(77, 77, 255, 0.1)";
-        // Change button to "Atual"
-        const actionEl = activeCard.querySelector('.btn-glow') || activeCard.querySelector('button');
-        if (actionEl) {
-        const parent = actionEl.parentNode;
-        parent.innerHTML += `<button disabled
+                // Highlight Current
+                const activeCard = document.getElementById(`plan-${currentPlan}`);
+                if (activeCard) {
+                    activeCard.style.border = "2px solid var(--accent)";
+                    activeCard.style.background = "rgba(77, 77, 255, 0.1)";
+                    // Change button to "Atual"
+                    const actionEl = activeCard.querySelector('.btn-glow') || activeCard.querySelector('button');
+                    if (actionEl) {
+                        const parent = actionEl.parentNode;
+                        parent.innerHTML += `<button disabled
             style="width: 100%; padding: 10px; background: var(--accent); border: none; color: #fff; border-radius: 6px;">Plano
             Atual</button>`;
-        actionEl.remove();
-        }
-        }
+                        actionEl.remove();
+                    }
+                }
 
 
-        // Update Header Texts
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        document.getElementById('pageTitle').innerText = data.companyName;
-        document.getElementById('pageSubtitle').innerText = `Bem-vindo(a), ${user.name || 'Gestor'}. Aqui estão os
+                // Update Header Texts
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                document.getElementById('pageTitle').innerText = data.companyName;
+                document.getElementById('pageSubtitle').innerText = `Bem-vindo(a), ${user.name || 'Gestor'}. Aqui estão os
         resultados em tempo real.`;
 
-        // Render All Views
-        renderMetrics(data.metrics);
-        renderCharts(data.attendants);
-        renderTable(data.reviews);
+                // Render All Views
+                renderMetrics(data.metrics);
+                renderCharts(data.attendants);
+                renderTable(data.reviews);
 
-        // New logic (Fixing order and adding new charts)
-        renderRecentReviews(data.reviews || []); // Ensure array
-        renderAttendantsList(data.attendants);
-        checkPlanLimits(data.plan, data.metrics.activeAttendants);
+                // New logic (Fixing order and adding new charts)
+                renderRecentReviews(data.reviews || []); // Ensure array
+                renderAttendantsList(data.attendants);
+                checkPlanLimits(data.plan, data.metrics.activeAttendants);
 
-        // Render New Charts (Map + Trend)
-        if (google && google.charts) {
-        google.charts.setOnLoadCallback(() => renderNewCharts(data.reviewsByState, data.reviewsByDate));
-        }
+                // Render New Charts (Map + Trend)
+                if (google && google.charts) {
+                    google.charts.setOnLoadCallback(() => renderNewCharts(data.reviewsByState, data.reviewsByDate));
+                }
 
-        } catch (e) {
-        console.error(e);
-        }
+            } catch (e) {
+                console.error(e);
+            }
         }
 
         function renderMetrics(metrics) {
-        const cards = document.querySelectorAll('.metric-value');
-        if (cards.length >= 4) {
-        cards[0].innerText = metrics.average ? metrics.average.toFixed(1) : '0.0';
-        cards[1].innerText = metrics.total;
-        cards[2].innerText = metrics.nps;
-        cards[3].innerText = metrics.activeAttendants;
-        }
+            const cards = document.querySelectorAll('.metric-value');
+            if (cards.length >= 4) {
+                cards[0].innerText = metrics.average ? metrics.average.toFixed(1) : '0.0';
+                cards[1].innerText = metrics.total;
+                cards[2].innerText = metrics.nps;
+                cards[3].innerText = metrics.activeAttendants;
+            }
         }
 
         let mainChartInstance = null;
         let pieChartInstance = null;
 
         function renderCharts(attendants) {
-        // MAIN CHART
-        const ctxMain = document.getElementById('mainChart').getContext('2d');
-        const labels = attendants.map(a => a.name);
-        const volume = attendants.map(a => a._count.reviews);
-        const colors = attendants.map(a => getAttendantColor(a.name));
+            // MAIN CHART
+            const ctxMain = document.getElementById('mainChart').getContext('2d');
+            const labels = attendants.map(a => a.name);
+            const volume = attendants.map(a => a._count.reviews);
+            const colors = attendants.map(a => getAttendantColor(a.name));
 
-        if (mainChartInstance) mainChartInstance.destroy();
+            if (mainChartInstance) mainChartInstance.destroy();
 
-        mainChartInstance = new Chart(ctxMain, {
-        type: 'bar',
-        data: {
-        labels: labels,
-        datasets: [{
-        label: 'Desempenho (Volume)',
-        data: volume,
-        backgroundColor: colors,
-        borderColor: colors.map(c => c), // Same color or darken? Same is fine for neon.
-        borderWidth: 1,
-        borderRadius: 5
-        }]
-        },
-        options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: { y: { beginAtZero: true } }
-        }
-        });
-
-        // PIE CHART calculate from reviews
-        const starsCount = [0, 0, 0, 0, 0];
-        globalData.reviews.forEach(r => {
-        if (r.stars >= 1 && r.stars <= 5) starsCount[r.stars - 1]++; }); const
-            ctxPie=document.getElementById('pieChart').getContext('2d'); if (pieChartInstance)
-            pieChartInstance.destroy(); pieChartInstance=new Chart(ctxPie, { type: 'doughnut' , data: { labels: ['1
-            ★', '2 ★' , '3 ★' , '4 ★' , '5 ★' ], datasets: [{ data: starsCount, backgroundColor: ['#ff5252', '#ff9100'
-            , '#ffd740' , '#69f0ae' , '#00c853' ], borderWidth: 0 }] }, options: { responsive: true,
-            maintainAspectRatio: false, plugins: { legend: { position: 'right' } } } }); } // --- NEW CHARTS (Map &
-            Trend) --- let trendChartInstance=null; function renderNewCharts(byState, byDate) { // 1. MAP (Google
-            GeoChart) // Transform { 'SP' : 10, 'RJ' : 5 } to [['State', 'Reviews' ], ['BR-SP', 10], ...] // Google
-            GeoChart for Brazil uses "BR-XX" codes (ISO 3166-2:BR) const mapData=[['Estado', 'Avaliações' ]]; if
-            (byState && byState.length> 0) {
-            byState.forEach(item => {
-            // item is { state: 'SP', _count: { id: 10 } } from Prisma groupBy
-            if (item.state) {
-            // Ensure state code is like "BR-SP"
-            let code = item.state.toUpperCase();
-            if (!code.startsWith('BR-')) code = 'BR-' + code;
-            mapData.push([code, item._count.id]);
-            }
+            mainChartInstance = new Chart(ctxMain, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Desempenho (Volume)',
+                        data: volume,
+                        backgroundColor: colors,
+                        borderColor: colors.map(c => c), // Same color or darken? Same is fine for neon.
+                        borderWidth: 1,
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } }
+                }
             });
+
+            // PIE CHART calculate from reviews
+            const starsCount = [0, 0, 0, 0, 0];
+            globalData.reviews.forEach(r => {
+                if (r.stars >= 1 && r.stars <= 5) starsCount[r.stars - 1]++;
+            }); const
+                ctxPie = document.getElementById('pieChart').getContext('2d'); if (pieChartInstance)
+                pieChartInstance.destroy(); pieChartInstance = new Chart(ctxPie, {
+                    type: 'doughnut', data: {
+                        labels: ['1 ★', '2 ★', '3 ★', '4 ★', '5 ★'],
+                        datasets: [{
+                            data: starsCount,
+                            backgroundColor: ['#ff5252', '#ff9100', '#ffd740', '#69f0ae', '#00c853'],
+                            borderWidth: 0
+                        }]
+                    }, options: {
+                        responsive: true,
+                        maintainAspectRatio: false, plugins: { legend: { position: 'right' } }
+                    }
+                });
+        } // --- NEW CHARTS (Map &
+            Trend)--- let trendChartInstance = null; function renderNewCharts(byState, byDate) { // 1. MAP (Google
+            GeoChart) // Transform { 'SP' : 10, 'RJ' : 5 } to [['State', 'Reviews' ], ['BR-SP', 10], ...] // Google
+            GeoChart for Brazil uses "BR-XX" codes(ISO 3166 - 2: BR) const mapData = [['Estado', 'Avaliações']]; if
+                (byState && byState.length > 0) {
+                byState.forEach(item => {
+                    // item is { state: 'SP', _count: { id: 10 } } from Prisma groupBy
+                    if (item.state) {
+                        // Ensure state code is like "BR-SP"
+                        let code = item.state.toUpperCase();
+                        if (!code.startsWith('BR-')) code = 'BR-' + code;
+                        mapData.push([code, item._count.id]);
+                    }
+                });
             } else {
-            mapData.push(['BR-DF', 0]); // Dummy to render map
+                mapData.push(['BR-DF', 0]); // Dummy to render map
             }
 
             const dataTable = google.visualization.arrayToDataTable(mapData);
             const options = {
-            region: 'BR', // Brazil
-            displayMode: 'regions',
-            resolution: 'provinces',
-            colorAxis: { colors: ['#e0f7fa', '#006064'] }, // Light to Dark Blue
-            backgroundColor: 'transparent',
-            datalessRegionColor: 'rgba(255,255,255,0.05)',
-            defaultColor: '#f5f5f5',
+                region: 'BR', // Brazil
+                displayMode: 'regions',
+                resolution: 'provinces',
+                colorAxis: { colors: ['#e0f7fa', '#006064'] }, // Light to Dark Blue
+                backgroundColor: 'transparent',
+                datalessRegionColor: 'rgba(255,255,255,0.05)',
+                defaultColor: '#f5f5f5',
             };
 
             const chart = new google.visualization.GeoChart(document.getElementById('geoChart'));
@@ -2119,59 +2038,59 @@
             const dataPoints = [];
             const today = new Date();
             for (let i = 29; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(today.getDate() - i);
-            const dayStr = d.toISOString().split('T')[0];
-            labels.push(dayStr.split('-').slice(1).join('/')); // MM/DD
-            dataPoints.push(byDate[dayStr] || 0);
+                const d = new Date();
+                d.setDate(today.getDate() - i);
+                const dayStr = d.toISOString().split('T')[0];
+                labels.push(dayStr.split('-').slice(1).join('/')); // MM/DD
+                dataPoints.push(byDate[dayStr] || 0);
             }
 
             if (trendChartInstance) trendChartInstance.destroy();
 
             trendChartInstance = new Chart(ctxTrend, {
-            type: 'line',
-            data: {
-            labels: labels,
-            datasets: [{
-            label: 'Avaliações Diárias',
-            data: dataPoints,
-            borderColor: '#00e676', // Green
-            backgroundColor: 'rgba(0, 230, 118, 0.1)',
-            fill: true,
-            tension: 0.4,
-            pointRadius: 3
-            }]
-            },
-            options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-            y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' } },
-            x: { grid: { display: false } }
-            },
-            plugins: { legend: { display: false } }
-            }
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Avaliações Diárias',
+                        data: dataPoints,
+                        borderColor: '#00e676', // Green
+                        backgroundColor: 'rgba(0, 230, 118, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' } },
+                        x: { grid: { display: false } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
             });
-            }
+        }
 
-            // Init Google Charts
-            google.charts.load('current', {
+        // Init Google Charts
+        google.charts.load('current', {
             'packages': ['geochart'],
             'mapsApiKey': '' // Not needed for simple GeoChart? Check. Yes, old GeoChart (Flash/SVG) works without key
             usually?
             // Wait, Google Maps Key is required for Geocoding, but visualization.GeoChart uses SVG/VML.
             // It should works.
-            });
+        });
 
-            function renderTable(reviews) {
+        function renderTable(reviews) {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
             reviews.forEach(item => {
-            const tr = document.createElement('tr');
-            const starsHtml = '★'.repeat(item.stars) + '☆'.repeat(5 - item.stars);
-            const attName = item.attendant ? item.attendant.name : 'Geral';
-            const date = new Date(item.createdAt);
-            tr.innerHTML = `
+                const tr = document.createElement('tr');
+                const starsHtml = '★'.repeat(item.stars) + '☆'.repeat(5 - item.stars);
+                const attName = item.attendant ? item.attendant.name : 'Geral';
+                const date = new Date(item.createdAt);
+                tr.innerHTML = `
             <td><span class="badge badge-attendant">${attName}</span></td>
             <td>${date.toLocaleDateString()} <small>${date.toLocaleTimeString().slice(0, 5)}</small></td>
             <td><span class="stars-display">${starsHtml}</span></td>
@@ -2179,36 +2098,36 @@
             <td>${item.city || '-'} / ${item.state || '-'}</td>
             <td><span class="badge badge-device">${item.device || '?'}</span></td>
             `;
-            tbody.appendChild(tr);
+                tbody.appendChild(tr);
             });
-            }
+        }
 
-            // --- ATTENDANTS LIST & SORT ---
-            let attendantsSort = 'name'; // default
+        // --- ATTENDANTS LIST & SORT ---
+        let attendantsSort = 'name'; // default
 
-            function toggleAttendantSort() {
+        function toggleAttendantSort() {
             if (attendantsSort === 'name') attendantsSort = 'reviews';
             else attendantsSort = 'name';
             renderAttendantsList(globalData.attendants);
-            }
+        }
 
-            function renderAttendantsList(attendants) {
+        function renderAttendantsList(attendants) {
             const tbody = document.getElementById('attendantsTableBody');
 
             // Create Toolbar if not exists
             let toolbar = document.getElementById('atdToolbar');
             if (!toolbar) {
-            const container = document.querySelector('#view-attendants .glass-panel');
-            // Only insert if container exists and H2 exists
-            const h2 = container.querySelector('h2');
-            if (h2) {
-            toolbar = document.createElement('div');
-            toolbar.id = 'atdToolbar';
-            toolbar.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom:
-            20px;";
+                const container = document.querySelector('#view-attendants .glass-panel');
+                // Only insert if container exists and H2 exists
+                const h2 = container.querySelector('h2');
+                if (h2) {
+                    toolbar = document.createElement('div');
+                    toolbar.id = 'atdToolbar';
+                    toolbar.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom:
+                    20px; ";
 
-            // Helper text for Plan Limits (Initial placeholder, updated below)
-            toolbar.innerHTML = `
+                    // Helper text for Plan Limits (Initial placeholder, updated below)
+                    toolbar.innerHTML = `
             <div id="planUsageText" style="font-size: 0.9rem; color: var(--text-muted);">
                 Uso do Plano: --
             </div>
@@ -2217,38 +2136,38 @@
                 ⇅ Ordenar por Avaliações
             </button>
             `;
-            h2.insertAdjacentElement('afterend', toolbar);
-            }
+                    h2.insertAdjacentElement('afterend', toolbar);
+                }
             }
 
             // Update Limit Text
             const limitTextEl = document.getElementById('planUsageText');
             if (limitTextEl && globalData.plan) {
-            const limits = { 'GRATIS': 5, 'PEQUENAS': 20, 'GRANDES': Infinity };
-            const limit = limits[globalData.plan] || 5;
-            const count = globalData.metrics.activeAttendants || 0;
-            const txt = limit === Infinity ? 'Ilimitado' : `${count}/${limit}`;
-            limitTextEl.innerHTML = `Uso do Plano: <strong style="color: #fff;">${txt}</strong> atendentes`;
+                const limits = { 'GRATIS': 5, 'PEQUENAS': 20, 'GRANDES': Infinity };
+                const limit = limits[globalData.plan] || 5;
+                const count = globalData.metrics.activeAttendants || 0;
+                const txt = limit === Infinity ? 'Ilimitado' : `${count}/${limit}`;
+                limitTextEl.innerHTML = `Uso do Plano: <strong style="color: #fff;">${txt}</strong> atendentes`;
             }
 
             // SORT DATA
             let sorted = [...attendants];
             if (attendantsSort === 'reviews') {
-            sorted.sort((a, b) => b._count.reviews - a._count.reviews);
+                sorted.sort((a, b) => b._count.reviews - a._count.reviews);
             } else {
-            sorted.sort((a, b) => a.name.localeCompare(b.name));
+                sorted.sort((a, b) => a.name.localeCompare(b.name));
             }
 
             tbody.innerHTML = '';
             sorted.forEach(att => {
-            const tr = document.createElement('tr');
-            const attColor = getAttendantColor(att.name);
-            const isActive = att.active !== false; // Default true if undefined
-            const statusBadge = isActive
-            ? '<span style="color:#00e676;">Ativo</span>'
-            : '<span style="color:#ef4444;">Inativo</span>';
+                const tr = document.createElement('tr');
+                const attColor = getAttendantColor(att.name);
+                const isActive = att.active !== false; // Default true if undefined
+                const statusBadge = isActive
+                    ? '<span style="color:#00e676;">Ativo</span>'
+                    : '<span style="color:#ef4444;">Inativo</span>';
 
-            tr.innerHTML = `
+                tr.innerHTML = `
             <td><b style="color: ${attColor}; font-size: 1.05rem;">${att.name}</b></td>
             <td>${att.phone || '-'}</td>
             <td>${att.sector || '-'}</td>
@@ -2273,119 +2192,123 @@
                 </button>
             </td>
             `;
-            tbody.appendChild(tr);
+                tbody.appendChild(tr);
             });
-            }
+        }
 
-            // --- FILTERING ---
-            document.getElementById('searchInput').addEventListener('input', (e) => {
+        // --- FILTERING ---
+        document.getElementById('searchInput').addEventListener('input', (e) => {
             const term = e.target.value.toLowerCase();
             const filtered = globalData.reviews.filter(d =>
-            (d.attendant?.name.toLowerCase().includes(term)) ||
-            (d.city?.toLowerCase().includes(term))
+                (d.attendant?.name.toLowerCase().includes(term)) ||
+                (d.city?.toLowerCase().includes(term))
             );
             renderTable(filtered);
-            });
+        });
 
-            // --- EXPORT FUNCTIONS ---
+        // --- EXPORT FUNCTIONS ---
 
-            function getFilteredDataForExport() {
+        function getFilteredDataForExport() {
             // If in Reports tab, use the loaded reports
             const reportsView = document.getElementById('view-relatorios');
             if (reportsView && reportsView.style.display !== 'none' && globalData.reports.length > 0) {
-            return globalData.reports;
+                return globalData.reports;
             }
 
             // Fallback to existing dashboard logic
             const startStr = document.getElementById('reportStartDate')?.value ||
-            document.getElementById('dateStart')?.value;
+                document.getElementById('dateStart')?.value;
             const endStr = document.getElementById('reportEndDate')?.value || document.getElementById('dateEnd')?.value;
 
             let data = globalData.reviews;
 
             if (startStr || endStr) {
-            const start = startStr ? new Date(startStr) : new Date(0);
-            const end = endStr ? new Date(endStr) : new Date();
-            end.setHours(23, 59, 59, 999);
+                const start = startStr ? new Date(startStr) : new Date(0);
+                const end = endStr ? new Date(endStr) : new Date();
+                end.setHours(23, 59, 59, 999);
 
-            data = data.filter(r => {
-            const d = new Date(r.createdAt);
-            return d >= start && d <= end; }); } return data; } function exportToCSV() { const
-                data=getFilteredDataForExport(); const rows=[ ["Atendente", "Data" , "Nota" , "Comentario" , "IP"
-                , "Localizacao" , "Cidade" , "Estado" , "Dispositivo" ] ]; data.forEach(r=> {
-                const attName = r.attendant ? r.attendant.name : 'Geral';
-                const date = new Date(r.createdAt).toLocaleString();
-
-                rows.push([
-                `"${attName}"`,
-                `"${date}"`,
-                r.stars,
-                `"${(r.comment || '').replace(/"/g, '""')}"`,
-                `"${r.ip || ''}"`,
-                `"${r.location || ''}"`,
-                `"${r.city || ''}"`,
-                `"${r.state || ''}"`,
-                `"${r.device || ''}"`
-                ]);
+                data = data.filter(r => {
+                    const d = new Date(r.createdAt);
+                    return d >= start && d <= end;
                 });
+            } return data;
+        } function exportToCSV() {
+            const
+                data = getFilteredDataForExport(); const rows = [["Atendente", "Data", "Nota", "Comentario", "IP"
+                    , "Localizacao", "Cidade", "Estado", "Dispositivo"]]; data.forEach(r => {
+                        const attName = r.attendant ? r.attendant.name : 'Geral';
+                        const date = new Date(r.createdAt).toLocaleString();
 
-                let csvContent = "data:text/csv;charset=utf-8,"
+                        rows.push([
+                            `"${attName}"`,
+                            `"${date}"`,
+                            r.stars,
+                            `"${(r.comment || '').replace(/"/g, '""')}"`,
+                            `"${r.ip || ''}"`,
+                            `"${r.location || ''}"`,
+                            `"${r.city || ''}"`,
+                            `"${r.state || ''}"`,
+                            `"${r.device || ''}"`
+                        ]);
+                    });
+
+            let csvContent = "data:text/csv;charset=utf-8,"
                 + rows.map(e => e.join(",")).join("\n");
 
-                const encodedUri = encodeURI(csvContent);
-                const link = document.createElement("a");
-                link.setAttribute("href", encodedUri);
-                link.setAttribute("download", `avaliaja_relatorio_${Date.now()}.csv`);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                }
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `avaliaja_relatorio_${Date.now()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
 
-                async function generatePDF() {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
-                const data = getFilteredDataForExport();
+        async function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const data = getFilteredDataForExport();
 
-                // Header
-                doc.setFontSize(20);
-                doc.text(globalData.companyName || "Relatório de Avaliações", 14, 22);
-                doc.setFontSize(10);
-                const today = new Date().toLocaleDateString();
-                doc.text(`Gerado em: ${today}`, 14, 30);
+            // Header
+            doc.setFontSize(20);
+            doc.text(globalData.companyName || "Relatório de Avaliações", 14, 22);
+            doc.setFontSize(10);
+            const today = new Date().toLocaleDateString();
+            doc.text(`Gerado em: ${today}`, 14, 30);
 
-                // Summary Stats (calculated from filtered data)
-                const total = data.length;
-                const avg = total > 0 ? (data.reduce((acc, curr) => acc + curr.stars, 0) / total).toFixed(1) : 0;
-                const nps = "N/A (Geral)"; // Simplification for PDF, or calc real NPS if needed
+            // Summary Stats (calculated from filtered data)
+            const total = data.length;
+            const avg = total > 0 ? (data.reduce((acc, curr) => acc + curr.stars, 0) / total).toFixed(1) : 0;
+            const nps = "N/A (Geral)"; // Simplification for PDF, or calc real NPS if needed
 
-                doc.text(`Total no período: ${total} | Média: ${avg}`, 14, 38);
+            doc.text(`Total no período: ${total} | Média: ${avg}`, 14, 38);
 
-                // Table
-                const tableBody = data.map(r => [
+            // Table
+            const tableBody = data.map(r => [
                 r.attendant ? r.attendant.name : 'Geral',
                 new Date(r.createdAt).toLocaleDateString(),
                 r.stars + ' ★',
                 r.comment || '-',
                 r.city || '-'
-                ]);
+            ]);
 
-                doc.autoTable({
+            doc.autoTable({
                 startY: 45,
                 head: [['Atendente', 'Data', 'Nota', 'Com.', 'Cidade']],
                 body: tableBody,
                 theme: 'grid',
                 headStyles: { fillColor: [43, 29, 167] }
-                });
+            });
 
-                doc.save(`relatorio_avaliaja_${Date.now()}.pdf`);
-                }
+            doc.save(`relatorio_avaliaja_${Date.now()}.pdf`);
+        }
 
-                // --- MODAL LOGIC ---
-                function openAttendantModal(attId = null) {
-                const m = document.getElementById('attendantModal');
-                m.classList.add('active');
+        // --- MODAL LOGIC ---
+        function openAttendantModal(attId = null) {
+            const m = document.getElementById('attendantModal');
+            m.classList.add('active');
 
-                if (attId) {
+            if (attId) {
                 // Edit Mode
                 const data = globalData.attendants.find(a => a.id === attId);
                 if (!data) return alert("Erro: Atendente não encontrado.");
@@ -2399,7 +2322,7 @@
                 (conceptually)
                 document.getElementById('attendantActiveInput').checked = data.active !== false;
                 document.getElementById('resultArea').style.display = 'none';
-                } else {
+            } else {
                 // Create Mode
                 document.getElementById('attendantIdInput').value = '';
                 document.getElementById('attendantNameInput').value = '';
@@ -2409,215 +2332,215 @@
                 document.getElementById('attendantNotifyInput').checked = true;
                 document.getElementById('attendantActiveInput').checked = true;
                 document.getElementById('resultArea').style.display = 'none';
-                }
-                }
+            }
+        }
 
-                function closeAttendantModal() {
-                document.getElementById('attendantModal').classList.remove('active');
-                // Wait a bit to refresh so the user sees the close animation?
-                // Actually, we should refresh list immediately.
-                loadDashboard();
-                }
+        function closeAttendantModal() {
+            document.getElementById('attendantModal').classList.remove('active');
+            // Wait a bit to refresh so the user sees the close animation?
+            // Actually, we should refresh list immediately.
+            loadDashboard();
+        }
 
-                function getCompSlug() {
-                const user = JSON.parse(localStorage.getItem('user') || '{}');
-                return user.companySlug || 'empresa'; // Fallback
-                }
+        function getCompSlug() {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            return user.companySlug || 'empresa'; // Fallback
+        }
 
-                async function saveAttendant() {
-                const id = document.getElementById('attendantIdInput').value.trim();
-                const name = document.getElementById('attendantNameInput').value.trim();
-                if (!name) return alert("O nome é obrigatório.");
+        async function saveAttendant() {
+            const id = document.getElementById('attendantIdInput').value.trim();
+            const name = document.getElementById('attendantNameInput').value.trim();
+            if (!name) return alert("O nome é obrigatório.");
 
-                const phone = document.getElementById('attendantPhoneInput').value.trim();
-                const sector = document.getElementById('attendantSectorInput').value.trim();
-                const integrationId = document.getElementById('attendantIntegrationIdInput').value.trim();
-                const notify = document.getElementById('attendantNotifyInput').checked;
-                const active = document.getElementById('attendantActiveInput').checked;
+            const phone = document.getElementById('attendantPhoneInput').value.trim();
+            const sector = document.getElementById('attendantSectorInput').value.trim();
+            const integrationId = document.getElementById('attendantIntegrationIdInput').value.trim();
+            const notify = document.getElementById('attendantNotifyInput').checked;
+            const active = document.getElementById('attendantActiveInput').checked;
 
-                const btn = document.querySelector('button[onclick="saveAttendant()"]');
-                const originalText = btn.innerText;
-                btn.innerText = "Salvando...";
-                btn.disabled = true;
+            const btn = document.querySelector('button[onclick="saveAttendant()"]');
+            const originalText = btn.innerText;
+            btn.innerText = "Salvando...";
+            btn.disabled = true;
 
-                const payload = {
+            const payload = {
                 name,
                 phone: phone || null,
                 sector: sector || null,
                 integrationId: integrationId || null,
                 notify,
                 active
-                };
+            };
 
-                try {
+            try {
                 let res;
                 if (id) {
-                // Update
-                res = await fetch(`/api/atendentes/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(payload)
-                });
+                    // Update
+                    res = await fetch(`/api/atendentes/${id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify(payload)
+                    });
                 } else {
-                // Create
-                res = await fetch('/api/atendentes', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(payload)
-                });
+                    // Create
+                    res = await fetch('/api/atendentes', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify(payload)
+                    });
                 }
 
                 if (res.ok) {
-                const saved = await res.json();
+                    const saved = await res.json();
 
-                if (id) {
-                alert('Atendente atualizado com sucesso!');
-                closeAttendantModal();
+                    if (id) {
+                        alert('Atendente atualizado com sucesso!');
+                        closeAttendantModal();
+                    } else {
+                        // If created, populate link area
+                        const slug = getCompSlug();
+                        const origin = window.location.origin;
+                        const fullLink = `${origin}/${slug}/${encodeURIComponent(saved.name)}`;
+
+                        document.getElementById('generatedLink').value = fullLink;
+                        document.getElementById('resultArea').style.display = 'block';
+                        btn.innerText = "Salvo!";
+
+                        // We also refresh the background list, but don't close modal yet so they can copy link
+                        loadDashboard();
+
+                        setTimeout(() => {
+                            btn.innerText = originalText;
+                            btn.disabled = false;
+                        }, 2000);
+                        return; // Exit early to keep modal open
+                    }
+
                 } else {
-                // If created, populate link area
-                const slug = getCompSlug();
-                const origin = window.location.origin;
-                const fullLink = `${origin}/${slug}/${encodeURIComponent(saved.name)}`;
-
-                document.getElementById('generatedLink').value = fullLink;
-                document.getElementById('resultArea').style.display = 'block';
-                btn.innerText = "Salvo!";
-
-                // We also refresh the background list, but don't close modal yet so they can copy link
-                loadDashboard();
-
-                setTimeout(() => {
-                btn.innerText = originalText;
-                btn.disabled = false;
-                }, 2000);
-                return; // Exit early to keep modal open
+                    const err = await res.json();
+                    alert('Erro: ' + (err.error || 'Erro desconhecido'));
                 }
-
-                } else {
-                const err = await res.json();
-                alert('Erro: ' + (err.error || 'Erro desconhecido'));
-                }
-                } catch (e) {
+            } catch (e) {
                 console.error(e);
                 alert('Erro de conexão: ' + (e.message || e));
-                }
+            }
 
-                btn.innerText = originalText;
-                btn.disabled = false;
-                }
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
 
-                function copyLink() {
-                const copyText = document.getElementById("generatedLink");
-                copyText.select();
-                copyText.setSelectionRange(0, 99999); // Mobile compatibility
-                navigator.clipboard.writeText(copyText.value);
+        function copyLink() {
+            const copyText = document.getElementById("generatedLink");
+            copyText.select();
+            copyText.setSelectionRange(0, 99999); // Mobile compatibility
+            navigator.clipboard.writeText(copyText.value);
 
-                const btn = document.getElementById('btnCopy');
-                const original = btn.innerText;
-                btn.innerText = "Copiado!";
-                btn.style.background = "#00e676";
-                setTimeout(() => {
+            const btn = document.getElementById('btnCopy');
+            const original = btn.innerText;
+            btn.innerText = "Copiado!";
+            btn.style.background = "#00e676";
+            setTimeout(() => {
                 btn.innerText = original;
                 btn.style.background = "var(--primary-blue)";
-                }, 2000);
-                }
+            }, 2000);
+        }
 
-                function copyLinkByName(name) {
-                const slug = getCompSlug();
-                const origin = window.location.origin;
-                // Format: domain.com/SLUG/NAME
-                const fullLink = `${origin}/${slug}/${encodeURIComponent(name)}`;
+        function copyLinkByName(name) {
+            const slug = getCompSlug();
+            const origin = window.location.origin;
+            // Format: domain.com/SLUG/NAME
+            const fullLink = `${origin}/${slug}/${encodeURIComponent(name)}`;
 
-                navigator.clipboard.writeText(fullLink);
+            navigator.clipboard.writeText(fullLink);
 
-                // Visual feedback
-                const btn = document.getElementById(`btn-copy-${name}`);
-                if (btn) {
+            // Visual feedback
+            const btn = document.getElementById(`btn-copy-${name}`);
+            if (btn) {
                 const original = btn.innerText;
                 btn.innerText = "Copiado! ✓";
                 btn.style.background = "#00e676";
                 btn.style.color = "#fff";
                 setTimeout(() => {
-                btn.innerText = original;
-                btn.style.background = "rgba(255,255,255,0.1)";
-                btn.style.color = "#fff";
+                    btn.innerText = original;
+                    btn.style.background = "rgba(255,255,255,0.1)";
+                    btn.style.color = "#fff";
                 }, 2000);
-                }
-                }
+            }
+        }
 
-                async function deleteAttendant(id, name) {
-                if (!confirm(`Tem certeza que deseja excluir ${name}? Todas as avaliações dele serão apagadas.`))
+        async function deleteAttendant(id, name) {
+            if (!confirm(`Tem certeza que deseja excluir ${name}? Todas as avaliações dele serão apagadas.`))
                 return;
 
-                try {
+            try {
                 const res = await fetch(`/api/atendentes/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
-                loadDashboard(); // Reload logic
+                    loadDashboard(); // Reload logic
                 } else {
-                alert("Erro ao excluir");
+                    alert("Erro ao excluir");
                 }
-                } catch (e) {
+            } catch (e) {
                 console.error(e);
-                }
-                }
+            }
+        }
 
-                window.onclick = function (e) {
-                // Only close if clicked strictly on overlay, not content
-                if (e.target == document.getElementById('attendantModal')) closeAttendantModal();
-                }
+        window.onclick = function (e) {
+            // Only close if clicked strictly on overlay, not content
+            if (e.target == document.getElementById('attendantModal')) closeAttendantModal();
+        }
 
-                // Init
-                loadDashboard();
+        // Init
+        loadDashboard();
 
-                // --- PREVIEW LOGIC (POSTMESSAGE) ---
-                function updatePreviewColor(color) {
-                const frame = document.getElementById('previewIframe');
-                if (frame && frame.contentWindow) {
+        // --- PREVIEW LOGIC (POSTMESSAGE) ---
+        function updatePreviewColor(color) {
+            const frame = document.getElementById('previewIframe');
+            if (frame && frame.contentWindow) {
                 frame.contentWindow.postMessage({ type: 'UPDATE_COLOR', color: color }, '*');
-                }
-                }
+            }
+        }
 
-                function updatePreviewText(text) {
-                const frame = document.getElementById('previewIframe');
-                if (frame && frame.contentWindow) {
+        function updatePreviewText(text) {
+            const frame = document.getElementById('previewIframe');
+            if (frame && frame.contentWindow) {
                 frame.contentWindow.postMessage({ type: 'UPDATE_TEXT', text: text }, '*');
-                }
-                }
+            }
+        }
 
-                function togglePreviewObs(show) {
-                const frame = document.getElementById('previewIframe');
-                if (frame && frame.contentWindow) {
+        function togglePreviewObs(show) {
+            const frame = document.getElementById('previewIframe');
+            if (frame && frame.contentWindow) {
                 frame.contentWindow.postMessage({ type: 'TOGGLE_OBS', show: show }, '*');
-                }
-                }
+            }
+        }
 
-                function updatePreviewLogo(input) {
-                if (input.files && input.files[0]) {
+        function updatePreviewLogo(input) {
+            if (input.files && input.files[0]) {
                 const reader = new FileReader();
                 reader.onload = function (e) {
-                const base64 = e.target.result;
-                // Show small preview in dashboard
-                document.getElementById('logoPreviewContainer').style.display = 'block';
-                document.getElementById('logoPreviewImg').src = base64;
-                // Send to Iframe
-                const frame = document.getElementById('previewIframe');
-                if (frame && frame.contentWindow) {
-                frame.contentWindow.postMessage({ type: 'UPDATE_LOGO', src: base64 }, '*');
-                }
+                    const base64 = e.target.result;
+                    // Show small preview in dashboard
+                    document.getElementById('logoPreviewContainer').style.display = 'block';
+                    document.getElementById('logoPreviewImg').src = base64;
+                    // Send to Iframe
+                    const frame = document.getElementById('previewIframe');
+                    if (frame && frame.contentWindow) {
+                        frame.contentWindow.postMessage({ type: 'UPDATE_LOGO', src: base64 }, '*');
+                    }
                 }
                 reader.readAsDataURL(input.files[0]);
-                }
-                }
+            }
+        }
 
-                // --- NEW FEATURES LOGIC ---
+        // --- NEW FEATURES LOGIC ---
 
-                async function loadUsers() {
-                try {
+        async function loadUsers() {
+            try {
                 const res = await fetch('/api/company/users', {
-                headers: { 'Authorization': `Bearer ${token}` }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const users = await res.json();
                 const tbody = document.getElementById('usersTableBody');
@@ -2629,21 +2552,21 @@
 
                 let displayUsers = [...users];
                 if (currentUser.email && !hasCurrent) {
-                displayUsers.unshift({
-                name: currentUser.name + ' (Você)',
-                email: currentUser.email,
-                role: 'admin', // Assume admin
-                isSelf: true
-                });
+                    displayUsers.unshift({
+                        name: currentUser.name + ' (Você)',
+                        email: currentUser.email,
+                        role: 'admin', // Assume admin
+                        isSelf: true
+                    });
                 }
 
                 displayUsers.forEach(u => {
-                const isSelf = u.email === currentUser.email || u.isSelf;
-                tbody.innerHTML += `
+                    const isSelf = u.email === currentUser.email || u.isSelf;
+                    tbody.innerHTML += `
                 <tr>
                     <td>${u.name} ${isSelf ? '<span class="badge"
-                            style="background:var(--accent); font-size:0.7em;">VOCÊ</span>' : ''}</td>
-                    <td>${u.email}</td>
+                            style = "background:var(--accent); font-size:0.7em;" > VOCÊ</span > ' : ''}</td>
+                        < td > ${ u.email }</td >
                     <td><span class="badge" style="background: rgba(255,255,255,0.1);">${u.role || 'user'}</span></td>
                     <td><span style="color: var(--success);">Ativo</span></td>
                     <td>
@@ -2652,9 +2575,9 @@
                             title="Alterar Senha">🔑</button>
                         ${!isSelf ? '<button onclick="alert(\'Ação restrita.\')"
                             style="border:none; background:none; cursor:pointer;" title="Remover">❌</button>' : ''}
-                    </td>
-                </tr>
-                `;
+                    </td >
+                </tr >
+                        `;
                 });
                 } catch (e) { console.error(e); }
                 }
@@ -2675,7 +2598,7 @@
                 try {
                 const res = await fetch('/api/company/users', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ token } ` },
                 body: JSON.stringify(data)
                 });
                 if (res.ok) {
@@ -2706,7 +2629,7 @@
                 try {
                 const res = await fetch('/api/company/settings', {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ token } ` },
                 body: JSON.stringify({
                 whatsapp: whatsappNumbers[0] || "", // Primary
                 notifications: JSON.stringify({
@@ -2728,7 +2651,7 @@
                 try {
                 const res = await fetch('/api/company/settings', {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ token } ` },
                 body: JSON.stringify({ name, area })
                 });
                 if (res.ok) alert('Dados salvos!');
@@ -2820,7 +2743,7 @@
                         await oldLoadCustomization();
                         // Fill new fields
                         try {
-                        const res = await fetch('/api/company/settings', { headers: { 'Authorization': `Bearer ${token}`
+                        const res = await fetch('/api/company/settings', { headers: { 'Authorization': `Bearer ${ token } `
                         } });
                         const data = await res.json();
 
@@ -2890,7 +2813,7 @@
                         div.id = cardId;
 
                         div.innerHTML = `
-                        <div style="position: relative; z-index: 1;">
+                        < div style = "position: relative; z-index: 1;" >
                             <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
                                 <span style="font-size: 2rem;">${typeof conf.icon === 'string' &&
                                     !conf.icon.startsWith('<') ? conf.icon : '' }</span>
@@ -2918,7 +2841,7 @@
                                 Salvar Configuração
                             </button>
                         </form>
-                        </div>
+                        </div >
                         `;
                         container.appendChild(div);
                         if (!type) select.value = '';
@@ -2927,7 +2850,7 @@
                         function getIntegrationFields(type, data) {
                         if (type === 'whatsapp') {
                         return `
-                        <div style="margin-bottom: 15px;">
+                        < div style = "margin-bottom: 15px;" >
                             <label style="display:block; margin-bottom: 8px; font-size: 0.85rem; color: #ccc;">Número
                                 (com DDD)</label>
                             <input type="text" name="value" value="${data.value || ''}" placeholder="Ex: 5511999999999"
@@ -2947,17 +2870,17 @@
                                 <option value="off" ${data.rule==='off' ? 'selected' : '' }>🔕 Desativado</option>
                             </select>
                         </div>
-                        `;
+                    `;
                         }
                         return `
-                        <div style="margin-bottom: 15px;">
+                        < div style = "margin-bottom: 15px;" >
                             <label style="display:block; margin-bottom: 8px; font-size: 0.85rem; color: #ccc;">URL /
                                 Token / Chave API</label>
                             <input type="text" name="value" value="${data.value || ''}"
                                 placeholder="Cole aqui a credencial ou URL..."
                                 style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.4); color: #fff;">
                         </div>
-                        `;
+                    `;
                         }
 
                         async function deleteIntegration(cardId) {
@@ -2971,7 +2894,7 @@
                         if (container.children.length > 0) return; // Already loaded
 
                         try {
-                        const res = await fetch('/api/company/settings', { headers: { 'Authorization': `Bearer ${token}`
+                        const res = await fetch('/api/company/settings', { headers: { 'Authorization': `Bearer ${ token } `
                         } });
                         const data = await res.json();
 
@@ -3018,7 +2941,7 @@
 
                         try {
                         const resGet = await fetch('/api/company/settings', { headers: { 'Authorization': `Bearer
-                        ${token}` } });
+                        ${ token } ` } });
                         const current = await resGet.json();
                         const newSettings = current.settings || {};
                         newSettings.integrations = integrations;
@@ -3035,7 +2958,7 @@
 
                         const res = await fetch('/api/company/settings', {
                         method: 'PUT',
-                        headers: { 'Authorization': `Bearer ${token}` },
+                        headers: { 'Authorization': `Bearer ${ token } ` },
                         body: formData
                         });
 
@@ -3054,12 +2977,12 @@
                         div.style.display = 'flex';
                         div.style.gap = '10px';
                         div.innerHTML = `
-                        <input type="text" class="extra-question-input" value="${value}"
-                            placeholder="Digite a pergunta..."
-                            style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: #fff;">
+                        < input type = "text" class="extra-question-input" value = "${value}"
+                    placeholder = "Digite a pergunta..."
+                    style = "flex: 1; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: #fff;" >
                         <button type="button" onclick="this.parentElement.remove()"
                             style="background: transparent; border: none; color: #ef4444; cursor: pointer;">🗑️</button>
-                        `;
+                    `;
                         list.appendChild(div);
                         }
 
@@ -3074,105 +2997,119 @@
                         const newPass = prompt("Digite a nova senha para este usuário (min 6 caracteres):");
                         if (!newPass) return;
                         if (newPass.length < 6) return alert("Senha muito curta."); try { const res=await
-                            fetch(`/api/company/users/${userId}/password`, { method: 'PUT' , headers: { 'Content-Type'
-                            : 'application/json' , 'Authorization' : `Bearer ${token}` }, body: JSON.stringify({
-                            password: newPass }) }); const data=await res.json(); if (res.ok) alert(data.message); else
-                            alert(data.error || 'Erro ao alterar senha.' ); } catch (e) { console.error(e); alert('Erro
-                            ao alterar senha.'); } } </script>
-                            <!-- SUGGESTION MODAL -->
-                            <div class="modal-overlay" id="suggestionModal">
-                                <div class="modal-content glass-panel" style="max-width: 500px;">
-                                    <h2 style="margin-bottom: 20px;">Nova Sugestão</h2>
-                                    <form onsubmit="submitSuggestion(event)">
-                                        <textarea id="suggestionText" placeholder="Descreva sua sugestão..." required
-                                            style="width: 100%; height: 120px; padding: 12px; margin-bottom: 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; resize: vertical;"></textarea>
-                                        <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                                            <button type="button" class="btn-secondary"
-                                                onclick="closeSuggestionModal()">Cancelar</button>
-                                            <button type="submit" class="btn-glow">Enviar Sugestão</button>
-                                        </div>
-                                    </form>
-                                </div>
+                            fetch(`/ api / company / users / ${ userId } /password`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({ password: newPass }) });
+                })
+            }); const data = await res.json(); if (res.ok) alert(data.message); else
+                alert(data.error || 'Erro ao alterar senha.');
+        } catch (e) {
+            console.error(e); alert('Erro
+                            ao alterar senha.'); } } 
+    </script>
+    <!-- SUGGESTION MODAL -->
+    <div class="modal-overlay" id="suggestionModal">
+        <div class="modal-content glass-panel" style="max-width: 500px;">
+            <h2 style="margin-bottom: 20px;">Nova Sugestão</h2>
+            <form onsubmit="submitSuggestion(event)">
+                <textarea id="suggestionText" placeholder="Descreva sua sugestão..." required
+                    style="width: 100%; height: 120px; padding: 12px; margin-bottom: 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; resize: vertical;"></textarea>
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" class="btn-secondary" onclick="closeSuggestionModal()">Cancelar</button>
+                    <button type="submit" class="btn-glow">Enviar Sugestão</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <script>
+                            // --- SUGGESTIONS LOGIC ---
+                            async function loadSuggestions() {
+                    const list = document.getElementById('suggestionsList');
+                    if (!list) return;
+
+                    try {
+                        const res = await fetch('/api/suggestions', {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+                        const suggestions = await res.json();
+
+                        list.innerHTML = '';
+                        if (suggestions.length === 0) {
+                            list.innerHTML = '<p style="text-align:center; color:#666;">Nenhuma sugestão ainda. Seja o
+                            primeiro!</p > ';
+                            return;
+                        }
+
+                        suggestions.forEach(s => {
+                            const div = document.createElement('div');
+                            div.style.cssText = 'background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;
+                            display: flex; align - items: center; gap: 15px; ';
+                            div.innerHTML = `
+                            <div style="flex: 1;">
+                                <p style="margin: 0; color: #fff; font-size: 1rem;">${s.text}</p>
+                                <span style="font-size: 0.75rem; color: #666;">${new
+                                    Date(s.createdAt).toLocaleDateString()}</span>
                             </div>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <button onclick="voteSuggestion(${s.id}, 'like')" class="vote-btn"
+                                    style="background: rgba(0,255,0,0.1); color: #4ade80; border: 1px solid rgba(0,255,0,0.2); padding: 5px 10px; border-radius: 6px; cursor: pointer;">
+                                    👍 ${s.likes}
+                                </button>
+                                <button onclick="voteSuggestion(${s.id}, 'dislike')" class="vote-btn"
+                                    style="background: rgba(255,0,0,0.1); color: #f87171; border: 1px solid rgba(255,0,0,0.2); padding: 5px 10px; border-radius: 6px; cursor: pointer;">
+                                    👎 ${s.dislikes}
+                                </button>
+                            </div>
+                            `;
+                            list.appendChild(div);
+                        });
+                    } catch (e) {
+                        console.error(e); list.innerHTML = '<p style="color:red">Erro ao carregar.</p>
+                        '; }
+                    }
 
-                            <script>
-                                // --- SUGGESTIONS LOGIC ---
-                                async function loadSuggestions() {
-                                    const list = document.getElementById('suggestionsList');
-                                    if (!list) return;
+                    async function voteSuggestion(id, type) {
+                        try {
+                            const res = await fetch(`/api/suggestions/${id}/vote`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                body: JSON.stringify({ type })
+                            });
+                            if (res.ok) {
+                                loadSuggestions();
+                            }
+                        } catch (e) { console.error(e); }
+                    }
 
-                                    try {
-                                        const res = await fetch('/api/suggestions', { headers: { 'Authorization': `Bearer ${token}` } });
-                                        const suggestions = await res.json();
+                    function openSuggestionModal() {
+                        document.getElementById('suggestionModal').classList.add('active');
+                    }
+                    function closeSuggestionModal() {
+                        document.getElementById('suggestionModal').classList.remove('active');
+                    }
 
-                                        list.innerHTML = '';
-                                        if (suggestions.length === 0) {
-                                            list.innerHTML = '<p style="text-align:center; color:#666;">Nenhuma sugestão ainda. Seja o primeiro!</p>';
-                                            return;
-                                        }
+                    async function submitSuggestion(e) {
+                        e.preventDefault();
+                        const text = document.getElementById('suggestionText').value;
+                        if (!text) return;
 
-                                        suggestions.forEach(s => {
-                                            const div = document.createElement('div');
-                                            div.style.cssText = 'background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; display: flex; align-items: center; gap: 15px;';
-                                            div.innerHTML = `
-                        <div style="flex: 1;">
-                            <p style="margin: 0; color: #fff; font-size: 1rem;">${s.text}</p>
-                            <span style="font-size: 0.75rem; color: #666;">${new Date(s.createdAt).toLocaleDateString()}</span>
-                        </div>
-                        <div style="display: flex; gap: 10px; align-items: center;">
-                            <button onclick="voteSuggestion(${s.id}, 'like')" class="vote-btn" style="background: rgba(0,255,0,0.1); color: #4ade80; border: 1px solid rgba(0,255,0,0.2); padding: 5px 10px; border-radius: 6px; cursor: pointer;">
-                                👍 ${s.likes}
-                            </button>
-                            <button onclick="voteSuggestion(${s.id}, 'dislike')" class="vote-btn" style="background: rgba(255,0,0,0.1); color: #f87171; border: 1px solid rgba(255,0,0,0.2); padding: 5px 10px; border-radius: 6px; cursor: pointer;">
-                                👎 ${s.dislikes}
-                            </button>
-                        </div>
-                    `;
-                                            list.appendChild(div);
-                                        });
-                                    } catch (e) { console.error(e); list.innerHTML = '<p style="color:red">Erro ao carregar.</p>'; }
-                                }
-
-                                async function voteSuggestion(id, type) {
-                                    try {
-                                        const res = await fetch(`/api/suggestions/${id}/vote`, {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                                            body: JSON.stringify({ type })
-                                        });
-                                        if (res.ok) {
-                                            loadSuggestions();
-                                        }
-                                    } catch (e) { console.error(e); }
-                                }
-
-                                function openSuggestionModal() {
-                                    document.getElementById('suggestionModal').classList.add('active');
-                                }
-                                function closeSuggestionModal() {
-                                    document.getElementById('suggestionModal').classList.remove('active');
-                                }
-
-                                async function submitSuggestion(e) {
-                                    e.preventDefault();
-                                    const text = document.getElementById('suggestionText').value;
-                                    if (!text) return;
-
-                                    try {
-                                        const res = await fetch('/api/suggestions', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                                            body: JSON.stringify({ text })
-                                        });
-                                        if (res.ok) {
-                                            alert('Sugestão enviada!');
-                                            closeSuggestionModal();
-                                            document.getElementById('suggestionText').value = '';
-                                            loadSuggestions();
-                                        } else alert('Erro ao enviar.');
-                                    } catch (e) { console.error(e); }
-                                }
-                            </script>
+                        try {
+                            const res = await fetch('/api/suggestions', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                body: JSON.stringify({ text })
+                            });
+                            if (res.ok) {
+                                alert('Sugestão enviada!');
+                                closeSuggestionModal();
+                                document.getElementById('suggestionText').value = '';
+                                loadSuggestions();
+                            } else alert('Erro ao enviar.');
+                        } catch (e) { console.error(e); }
+                    }
+    </script>
 </body>
 
 </html>
