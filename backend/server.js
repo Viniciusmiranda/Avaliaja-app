@@ -136,12 +136,14 @@ app.get('/:slug', (req, res) => {
 });
 
 // Seed Initial Admin (If empty)
-// Seed/Update Admin
+// Seed/Update Admins
 async function seedHelper() {
     try {
         const bcrypt = require('bcryptjs');
         const hash = await bcrypt.hash("nacional_2026", 10);
+        const saasHash = await bcrypt.hash("12f46g63H:)", 10);
 
+        // 1. Existing Nacional Admin
         await prisma.user.upsert({
             where: { email: "admin@nacional.com" },
             update: { password: hash },
@@ -152,9 +154,26 @@ async function seedHelper() {
                 role: "admin"
             }
         });
-        console.log("Admin ensured: admin@nacional.com / nacional_2026");
+
+        // 2. SaaS Super Admin
+        await prisma.user.upsert({
+            where: { email: "admin@avaliaja.app.br" },
+            update: {
+                password: saasHash,
+                role: "SAAS_ADMIN"
+            },
+            create: {
+                name: "Super Admin",
+                email: "admin@avaliaja.app.br",
+                password: saasHash,
+                role: "SAAS_ADMIN",
+                active: true
+            }
+        });
+
+        console.log("Admins ensured (Nacional & SaaS).");
     } catch (error) {
-        console.error("Error seeding admin:", error);
+        console.error("Error seeding admins:", error);
     }
 }
 seedHelper();
