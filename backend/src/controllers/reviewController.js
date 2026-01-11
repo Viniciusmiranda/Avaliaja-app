@@ -164,6 +164,33 @@ exports.getDashboardData = async (req, res) => {
             }
         });
 
+        // CHARTS DATA
+        // 1. By State (Map)
+        const reviewsByState = await prisma.review.groupBy({
+            by: ['state'],
+            _count: { id: true },
+            where: { attendant: { companyId }, state: { not: null } }
+        });
+
+        // 2. Trend (Last 30 Days)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const last30DaysReviews = await prisma.review.findMany({
+            where: {
+                attendant: { companyId },
+                createdAt: { gte: thirtyDaysAgo }
+            },
+            select: { createdAt: true }
+        });
+
+        // Group by day in JS
+        const reviewsByDate = {};
+        last30DaysReviews.forEach(r => {
+            const day = r.createdAt.toISOString().split('T')[0];
+            reviewsByDate[day] = (reviewsByDate[day] || 0) + 1;
+        });
+
         // Company Details
         const company = await prisma.company.findUnique({
             where: { id: companyId },
@@ -180,7 +207,9 @@ exports.getDashboardData = async (req, res) => {
                 activeAttendants: attendants.length
             },
             reviews,
-            attendants
+            attendants,
+            reviewsByState,
+            reviewsByDate
         });
 
     } catch (err) {

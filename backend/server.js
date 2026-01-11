@@ -19,8 +19,11 @@ app.use(cors());
 app.use(express.json());
 
 // Request Logger
+// Request Logger
 app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    const logLine = `[${new Date().toISOString()}] ${req.method} ${req.url}\n`;
+    console.log(logLine.trim());
+    try { fs.appendFileSync(path.join(__dirname, 'server_requests.log'), logLine); } catch (e) { }
     next();
 });
 
@@ -116,6 +119,15 @@ async function seedHelper() {
     }
 }
 seedHelper();
+
+// Global 404 Handler (JSON fallback to prevent HTML errors in API)
+app.use((req, res, next) => {
+    if (req.accepts('json') || req.path.startsWith('/api/')) {
+        res.status(404).json({ error: `Rota não encontrada: ${req.method} ${req.originalUrl}` });
+    } else {
+        next();
+    }
+});
 
 // Start
 app.listen(PORT, '0.0.0.0', () => { // Adicione '0.0.0.0' aqui
