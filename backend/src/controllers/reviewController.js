@@ -117,24 +117,33 @@ exports.getDashboardData = async (req, res) => {
     const { companyId, role } = req.user;
     const { slug } = req.query;
 
+    console.log(`[DASHBOARD] User: ${req.user.id}, Role: ${role}, CompanyID (Token): ${companyId}, Requested Slug: ${slug}`);
+
     let targetCompanyId = companyId;
 
     try {
+        // If SAAS_ADMIN and slug is provided, find that company's ID
         if (role === 'SAAS_ADMIN' && slug) {
             const companyBySlug = await prisma.company.findUnique({
                 where: { slug: slug },
-                select: { id: true }
+                select: { id: true, name: true }
             });
             if (companyBySlug) {
                 targetCompanyId = companyBySlug.id;
+                console.log(`[DASHBOARD] Impersonating ${companyBySlug.name} (${targetCompanyId})`);
             } else {
-                return res.status(404).json({ error: "Empresa não encontrada." });
+                console.warn(`[DASHBOARD] Slug '${slug}' not found.`);
+                return res.status(404).json({ error: "Empresa não encontrada pelo slug fornecido." });
             }
         }
 
+        // If targetCompanyId is still null (e.g. SAAS_ADMIN without slug), error
         if (!targetCompanyId) {
+            console.warn(`[DASHBOARD] No context found.`);
             return res.status(403).json({ error: "Contexto de empresa não encontrado." });
         }
+
+        console.log(`[DASHBOARD] Fetching data for TargetCompanyID: ${targetCompanyId}`);
 
         const totalReviews = await prisma.review.count({
             where: { attendant: { companyId: targetCompanyId } }
@@ -147,15 +156,18 @@ exports.getDashboardData = async (req, res) => {
             take: 100
         });
 
+        // NPS Calculation
         const promoters = await prisma.review.count({ where: { stars: 5, attendant: { companyId: targetCompanyId } } });
         const detractors = await prisma.review.count({ where: { stars: { lte: 3 }, attendant: { companyId: targetCompanyId } } });
         const nps = totalReviews > 0 ? Math.round(((promoters - detractors) / totalReviews) * 100) : 0;
 
+        // Average
         const aggs = await prisma.review.aggregate({
             _avg: { stars: true },
             where: { attendant: { companyId: targetCompanyId } }
         });
 
+        // Attendants stats
         const attendants = await prisma.attendant.findMany({
             where: { companyId: targetCompanyId },
             include: {
@@ -163,12 +175,17 @@ exports.getDashboardData = async (req, res) => {
             }
         });
 
+        console.log(`[DASHBOARD] Stats: ${totalReviews} reviews, ${attendants.length} attendants.`);
+
+        // CHARTS DATA
+        // 1. By State (Map)
         const reviewsByState = await prisma.review.groupBy({
             by: ['state'],
             _count: { id: true },
             where: { attendant: { companyId: targetCompanyId }, state: { not: null } }
         });
 
+        // 2. Trend (Last 30 Days)
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -180,12 +197,14 @@ exports.getDashboardData = async (req, res) => {
             select: { createdAt: true }
         });
 
+        // Group by day in JS
         const reviewsByDate = {};
         last30DaysReviews.forEach(r => {
             const day = r.createdAt.toISOString().split('T')[0];
             reviewsByDate[day] = (reviewsByDate[day] || 0) + 1;
         });
 
+        // Company Details
         const company = await prisma.company.findUnique({
             where: { id: targetCompanyId },
             select: { name: true, plan: true, logo: true }
