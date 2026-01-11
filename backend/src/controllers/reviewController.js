@@ -2,7 +2,6 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 // Public: Submit Review
-// Public: Submit Review
 exports.submitReview = async (req, res) => {
     const { rating, observation, attendant, ip, city, state, device, link_maps, companySlug } = req.body;
 
@@ -51,22 +50,17 @@ exports.submitReview = async (req, res) => {
         // Send to N8N Webhook (Dynamic from Company Settings)
         let notifications = company.notifications;
 
-        console.log(`[DEBUG] Company: ${company.slug}, Notifications (Raw):`, notifications);
-
         if (typeof notifications === 'string') {
             try {
                 notifications = JSON.parse(notifications);
-                console.log(`[DEBUG] Notifications (Parsed):`, notifications);
             } catch (e) {
                 console.error("[DEBUG] Error parsing notifications JSON:", e);
             }
         }
 
         const webhookUrl = notifications?.webhookUrl || process.env.N8N_WEBHOOK_URL;
-        console.log(`[DEBUG] Webhook URL determined: ${webhookUrl}`);
 
         if (webhookUrl) {
-            console.log(`[DEBUG] Sending payload to N8N...`);
             const payload = {
                 id: review.id,
                 stars: review.stars,
@@ -90,14 +84,7 @@ exports.submitReview = async (req, res) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
-            })
-                .then(res => {
-                    console.log(`[DEBUG] N8N Response Status: ${res.status}`);
-                    return res.text().then(txt => console.log(`[DEBUG] N8N Response Body: ${txt}`));
-                })
-                .catch(err => console.error('[DEBUG] Error sending to N8N:', err));
-        } else {
-            console.log(`[DEBUG] No Webhook URL configured.`);
+            }).catch(err => console.error('[DEBUG] Error sending to N8N:', err));
         }
 
         res.json({ message: 'Avaliação recebida com sucesso!', id: review.id });
@@ -127,79 +114,87 @@ exports.updateReview = async (req, res) => {
 
 // Private: Get Dashboard Data
 exports.getDashboardData = async (req, res) => {
-    const { companyId } = req.user;
+    const { companyId, role } = req.user;
+    const { slug } = req.query;
 
-    if (!companyId) {
-        return res.status(403).json({ error: "Contexto de empresa não encontrado." });
-    }
+    let targetCompanyId = companyId;
 
     try {
+        if (role === 'SAAS_ADMIN' && slug) {
+            const companyBySlug = await prisma.company.findUnique({
+                where: { slug: slug },
+                select: { id: true }
+            });
+            if (companyBySlug) {
+                targetCompanyId = companyBySlug.id;
+            } else {
+                return res.status(404).json({ error: "Empresa não encontrada." });
+            }
+        }
+
+        if (!targetCompanyId) {
+            return res.status(403).json({ error: "Contexto de empresa não encontrado." });
+        }
+
         const totalReviews = await prisma.review.count({
-            where: { attendant: { companyId } }
+            where: { attendant: { companyId: targetCompanyId } }
         });
 
         const reviews = await prisma.review.findMany({
-            where: { attendant: { companyId } },
+            where: { attendant: { companyId: targetCompanyId } },
             include: { attendant: true },
             orderBy: { createdAt: 'desc' },
             take: 100
         });
 
-        // NPS Calculation
-        const promoters = await prisma.review.count({ where: { stars: 5, attendant: { companyId } } });
-        const detractors = await prisma.review.count({ where: { stars: { lte: 3 }, attendant: { companyId } } });
+        const promoters = await prisma.review.count({ where: { stars: 5, attendant: { companyId: targetCompanyId } } });
+        const detractors = await prisma.review.count({ where: { stars: { lte: 3 }, attendant: { companyId: targetCompanyId } } });
         const nps = totalReviews > 0 ? Math.round(((promoters - detractors) / totalReviews) * 100) : 0;
 
-        // Average
         const aggs = await prisma.review.aggregate({
             _avg: { stars: true },
-            where: { attendant: { companyId } }
+            where: { attendant: { companyId: targetCompanyId } }
         });
 
-        // Attendants stats
         const attendants = await prisma.attendant.findMany({
-            where: { companyId },
+            where: { companyId: targetCompanyId },
             include: {
                 _count: { select: { reviews: true } }
             }
         });
 
-        // CHARTS DATA
-        // 1. By State (Map)
         const reviewsByState = await prisma.review.groupBy({
             by: ['state'],
             _count: { id: true },
-            where: { attendant: { companyId }, state: { not: null } }
+            where: { attendant: { companyId: targetCompanyId }, state: { not: null } }
         });
 
-        // 2. Trend (Last 30 Days)
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
         const last30DaysReviews = await prisma.review.findMany({
             where: {
-                attendant: { companyId },
+                attendant: { companyId: targetCompanyId },
                 createdAt: { gte: thirtyDaysAgo }
             },
             select: { createdAt: true }
         });
 
-        // Group by day in JS
         const reviewsByDate = {};
         last30DaysReviews.forEach(r => {
             const day = r.createdAt.toISOString().split('T')[0];
             reviewsByDate[day] = (reviewsByDate[day] || 0) + 1;
         });
 
-        // Company Details
         const company = await prisma.company.findUnique({
-            where: { id: companyId },
+            where: { id: targetCompanyId },
             select: { name: true, plan: true, logo: true }
         });
 
         res.json({
             companyName: company?.name || "Minha Empresa",
             plan: company?.plan || "GRATIS",
+            logo: company?.logo,
             metrics: {
                 total: totalReviews,
                 average: aggs._avg.stars || 0,
@@ -225,7 +220,6 @@ exports.listReviews = async (req, res) => {
     const limit = parseInt(req.query.limit) || 30;
     const skip = (page - 1) * limit;
 
-    // Filters
     const search = req.query.search;
     const startDate = req.query.startDate;
     const endDate = req.query.endDate;
@@ -236,7 +230,6 @@ exports.listReviews = async (req, res) => {
             attendant: { companyId }
         };
 
-        // Date Range
         if (startDate || endDate) {
             where.createdAt = {};
             if (startDate) where.createdAt.gte = new Date(startDate);
@@ -247,12 +240,10 @@ exports.listReviews = async (req, res) => {
             }
         }
 
-        // Min Stars
         if (minStars) {
             where.stars = { gte: minStars };
         }
 
-        // Search (Attendant Name, City, Comment)
         if (search) {
             where.OR = [
                 { attendant: { name: { contains: search, mode: 'insensitive' } } },

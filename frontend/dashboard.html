@@ -1985,7 +1985,14 @@
                 }
             }
             try {
-                const res = await fetch('/api/avaliacoes/dashboard', {
+                // Extract slug from URL (e.g., /nacional-24h/dashboard)
+                const pathParts = window.location.pathname.split('/');
+                const urlSlug = pathParts[1] !== 'dashboard' ? pathParts[1] : null;
+
+                let fetchUrl = '/api/avaliacoes/dashboard';
+                if (urlSlug) fetchUrl += `?slug=${urlSlug}`;
+
+                const res = await fetch(fetchUrl, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
@@ -3331,8 +3338,12 @@
                         </span>
                     </td>
                     <td style="padding: 15px;">
-                        <button onclick="openAdminEditModal('${c.id}', '${c.name.replace(/'/g, "\\'")}', '${c.plan}', ${c.active})" 
-                            class="btn-glow" style="padding: 5px 12px; font-size: 0.8rem;">Editar</button>
+                        <div style="display: flex; gap: 5px;">
+                            <button onclick="window.location.href = '/${c.slug}/dashboard'" 
+                                class="btn-glow" style="padding: 5px 12px; font-size: 0.8rem; background: var(--accent);">Ver Dados</button>
+                            <button onclick="openAdminEditModal('${c.id}', '${c.name.replace(/'/g, "\\'")}', '${c.plan}', ${c.active})" 
+                                class="btn-glow" style="padding: 5px 12px; font-size: 0.8rem;">Editar</button>
+                        </div>
                     </td>
                 </tr>
             `).join('');
