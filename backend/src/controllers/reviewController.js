@@ -194,7 +194,7 @@ exports.getDashboardData = async (req, res) => {
         // Company Details
         const company = await prisma.company.findUnique({
             where: { id: companyId },
-            select: { name: true, plan: true }
+            select: { name: true, plan: true, logo: true }
         });
 
         res.json({

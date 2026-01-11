@@ -1519,7 +1519,8 @@
             metrics: {},
             reviews: [],
             reports: [], // New for Reports Tab
-            attendants: []
+            attendants: [],
+            companyName: '' // Initialize with empty string
         };
 
         // --- NAVIGATION LOGIC ---
@@ -1541,9 +1542,9 @@
 
             // Update Header
             const titleMap = {
-                'dashboard': 'Visão Geral',
+                'dashboard': globalData.companyName || 'Visão Geral',
                 'attendants': 'Gestão de Atendentes',
-                'relatorios': 'Relatórios e Análise de Performance', // New Title
+                'relatorios': 'Relatórios e Análise de Performance',
                 'personalizacao': 'Personalização',
                 'ajustes': 'Minha Conta',
                 'updates': 'Atualizações do Sistema',
@@ -1555,6 +1556,14 @@
             };
             const title = titleMap[viewName] || 'Painel';
             document.getElementById('pageTitle').innerText = title;
+
+            // Update Subtitle only on dashboard
+            if (viewName === 'dashboard') {
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                document.getElementById('pageSubtitle').innerText = `Bem-vindo(a), ${user.name || 'Gestor'}. Aqui estão os resultados em tempo real.`;
+            } else {
+                document.getElementById('pageSubtitle').innerText = 'Gerencie suas configurações e acompanhe seus resultados.';
+            }
 
             // Handle section visibility (Supports both ID formats: view-NAME or NAMESection)
             document.querySelectorAll('.view-section, .content-section').forEach(el => el.style.display = 'none');
@@ -2027,11 +2036,19 @@
                 }
 
 
-                // Update Header Texts
-                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                // Update Header Texts & Sidebar Logo
+                const userObj = JSON.parse(localStorage.getItem('user') || '{}');
                 document.getElementById('pageTitle').innerText = data.companyName;
-                document.getElementById('pageSubtitle').innerText = `Bem-vindo(a), ${user.name || 'Gestor'}. Aqui estão os
-        resultados em tempo real.`;
+                document.getElementById('pageSubtitle').innerText = `Bem-vindo(a), ${userObj.name || 'Gestor'}. Aqui estão os resultados em tempo real.`;
+
+                // Update Sidebar Logo if available
+                if (data.logo) {
+                    const sidebarLogo = document.getElementById('sidebarLogo');
+                    if (sidebarLogo) {
+                        sidebarLogo.src = data.logo;
+                        sidebarLogo.classList.remove('logo-default-filter');
+                    }
+                }
 
                 // Render All Views
                 renderMetrics(data.metrics);
