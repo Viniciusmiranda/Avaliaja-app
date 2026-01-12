@@ -1886,9 +1886,9 @@
 
             if (result.isConfirmed) {
                 try {
-                    const res = await fetch(`/ api / avaliacoes / ${id} `, {
+                    const res = await fetch(`/api/avaliacoes/${id}`, {
                         method: 'DELETE',
-                        headers: { 'Authorization': `Bearer ${token} ` }
+                        headers: { 'Authorization': `Bearer ${token}` }
                     });
 
                     if (res.ok) {
@@ -1931,9 +1931,9 @@
             if (reset) {
                 globalData.reports = [];
                 globalData.reportsPage = 1;
-                tbody.innerHTML = `< tr >
+                tbody.innerHTML = `<tr>
                             <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">Carregando dados...</td>
-                </tr > `;
+                </tr>`;
                 if (btn) btn.style.display = 'inline-block';
             }
 
@@ -1952,8 +1952,8 @@
             if (search) params.append('search', search);
 
             try {
-                const res = await fetch(`/ api / avaliacoes / list ? ${params.toString()} `, {
-                    headers: { 'Authorization': `Bearer ${token} ` }
+                const res = await fetch(`/api/avaliacoes/list?${params.toString()}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 if (!res.ok) throw new Error("Erro na API");
@@ -1963,9 +1963,9 @@
                 if (reset) tbody.innerHTML = ''; // Clear loading message
 
                 if (newReviews.length === 0 && reset) {
-                    tbody.innerHTML = `< tr >
+                    tbody.innerHTML = `<tr>
                             <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">Nenhuma avaliação encontrada com estes filtros.</td>
-                    </tr > `;
+                    </tr>`;
                     if (btn) btn.style.display = 'none';
                     return;
                 }
@@ -1986,9 +1986,10 @@
 
             } catch (e) {
                 console.error(e);
-                tbody.innerHTML = `< tr >
+                console.error(e);
+                tbody.innerHTML = `<tr>
                             <td colspan="8" style="text-align: center; padding: 20px; color: #ef4444;">Erro ao carregar dados. Tente novamente.</td>
-                </tr > `;
+                </tr>`;
             }
         }
 
@@ -2300,7 +2301,7 @@
                 const attName = item.attendant ? item.attendant.name : 'Geral';
                 const date = new Date(item.createdAt);
                 tr.innerHTML = `
-                            < td > <span class="badge badge-attendant">${attName}</span></td >
+                            <td><span class="badge badge-attendant">${attName}</span></td>
             <td>${date.toLocaleDateString()} <small>${date.toLocaleTimeString().slice(0, 5)}</small></td>
             <td><span class="stars-display">${starsHtml}</span></td>
             <td>${item.comment || '-'}</td>
@@ -2773,7 +2774,7 @@
                     tbody.innerHTML += `
                 <tr>
                     <td>${u.name} ${isSelf ? `<span class="badge" style="background:var(--accent); font-size:0.7em;">VOCÊ</span>` : ''}</td>
-                        < td > ${u.email}</td >
+                        <td>${u.email}</td>
                     <td><span class="badge" style="background: rgba(255,255,255,0.1);">${u.role || 'user'}</span></td>
                     <td><span style="color: var(--success);">Ativo</span></td>
                     <td>
