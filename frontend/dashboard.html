@@ -200,6 +200,26 @@
             display: flex;
             flex-direction: column;
             gap: 15px;
+            flex: 1;
+            /* Take available space */
+            overflow-y: auto;
+            /* Scroll if needed */
+            margin-right: -10px;
+            /* Adjust for scrollbar padding */
+            padding-right: 10px;
+            /* Hide Scrollbar for cleaner look (Firefox) */
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+        }
+
+        /* Webkit Scrollbar for Sidebar */
+        .nav-links::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .nav-links::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
         }
 
         .nav-item {
@@ -661,15 +681,21 @@
                 Suporte & Novidades
             </a>
 
+        </div> <!-- Close nav-links -->
+
+        <!-- Bottom Section (Footer + Logout) Pinned -->
+        <div class="sidebar-bottom"
+            style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+            <a href="#" class="nav-item" onclick="logout()" style="color: #ef4444; margin-bottom: 0;">
+                <span>🚪</span> Sair
+            </a>
+
             <div class="sidebar-footer"
-                style="padding: 20px 10px; font-size: 0.7rem; color: rgba(255,255,255,0.3); text-align: center; margin-top: auto;">
+                style="padding: 10px 0; font-size: 0.65rem; color: rgba(255,255,255,0.3); text-align: center;">
                 ©️ 2026 Avalia Já<br>
                 v2.2.45
             </div>
-
-            <a href="#" class="nav-item" onclick="logout()" style="color: #ef4444;">
-                <span>🚪</span> Sair
-            </a>
+        </div>
         </div>
     </nav>
     </aside>
