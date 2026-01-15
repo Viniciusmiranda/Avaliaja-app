@@ -37,7 +37,7 @@ model Company {
   active    Boolean  @default(true)
   users     User[]
   attendants Attendant[]
-  reviews   Review[]
+  attendants Attendant[]
   associations Association[]
   whatsappLogs WhatsappLog[]
   lnAssistLogs LnAssistLog[]
