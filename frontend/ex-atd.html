@@ -739,19 +739,19 @@
     const API_URL = "/api/avaliacoes";
 
     // --- STATE ---
-    let userContext = {
+    const userContext = {
       ip: null,
       city: null,
       state: null,
       mapsLink: null,
-      device: navigator.userAgent,
-      attendant: "Geral",
-      companySlug: null,
-      attendant: "Geral",
-      companySlug: null,
+      device: getDeviceName(),
+      // Injeção via servidor (server.js replace)
+      companySlug: window.location.pathname.split('/')[1] || 'demo',
+      attendant: decodeURIComponent(window.location.pathname.split('/')[2] || 'Geral'),
+      rating: null,
       reviewId: null,
-      redirectUrl: null,
-      rating: null // Store rating temporarily
+      redirectUrl: null, // Pode vir da config da empresa
+      externalId: new URLSearchParams(window.location.search).get('ref') || null // Capture Ref ID
     };
 
     let isEvaluated = false;
@@ -967,7 +967,8 @@
           state: userContext.state,
           device: userContext.device,
           link_maps: userContext.mapsLink,
-          companySlug: userContext.companySlug
+          companySlug: userContext.companySlug,
+          externalId: userContext.externalId // Send Ref ID
         };
 
         const res = await fetch(API_URL, {

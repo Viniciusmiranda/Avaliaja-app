@@ -43,7 +43,8 @@ exports.submitReview = async (req, res) => {
                 state,
                 device,
                 location: link_maps,
-                attendantId: attendantRecord.id
+                attendantId: attendantRecord.id,
+                externalId: req.body.externalId || null // Save Ref ID
             }
         });
 

@@ -84,6 +84,7 @@ model Review {
   location    String? // maps link
   attendantId String
   attendant   Attendant @relation(fields: [attendantId], references: [id])
+  externalId  String?   @map("external_id") // Stores integration Ref/ID (e.g. LnAssist ID)
   createdAt   DateTime  @default(now())
 
   @@map("avaliacoes")
