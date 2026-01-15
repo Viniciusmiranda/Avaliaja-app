@@ -39,6 +39,8 @@ model Company {
   attendants Attendant[]
   reviews   Review[]
   associations Association[]
+  whatsappLogs WhatsappLog[]
+  lnAssistLogs LnAssistLog[]
   createdAt  DateTime    @default(now())
 
   // Customization
