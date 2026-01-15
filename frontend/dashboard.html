@@ -2993,49 +2993,6 @@
         }
 
 
-        // Update loadCustomization to fill new fields too
-        const oldLoadCustomization = loadCustomization;
-        loadCustomization = async function () {
-            await oldLoadCustomization();
-            // Fill new fields
-            try {
-                const res = await fetch('/api/company/settings', {
-                    headers: {
-                        'Authorization': `Bearer ${token} `
-                    }
-                });
-                const data = await res.json();
-
-                // Profile
-                const user = JSON.parse(localStorage.getItem('user') || '{}');
-                const pName = document.getElementById('profileNameDisplay');
-                const pEmail = document.getElementById('profileEmailDisplay');
-                if (pName) pName.innerText = user.name || 'Gestor';
-                if (pEmail) pEmail.innerText = user.email || '';
-
-                // Account
-                if (data.name) document.getElementById('companyNameInput').value = data.name;
-                if (data.area) document.getElementById('companyAreaInput').value = data.area;
-                if (data.whatsapp) document.getElementById('whatsappInput').value = data.whatsapp;
-
-                // Notifications
-                if (data.notifications) {
-                    const n = typeof data.notifications === 'string' ? JSON.parse(data.notifications) :
-                        data.notifications;
-                    if (n.whatsappRule) document.getElementById('notifyRuleInput').value = n.whatsappRule;
-                }
-
-                // Preview Init
-                if (data.primaryColor) updatePreviewColor(data.primaryColor);
-                if (data.logo) document.getElementById('previewLogo').src = data.logo;
-                if (data.settings) {
-                    const s = typeof data.settings === 'string' ? JSON.parse(data.settings) : data.settings;
-                    updatePreviewText(s.questionTitle);
-                    togglePreviewObs(s.showObservation);
-                }
-
-            } catch (e) { }
-        }
 
         // Load Users when tab is clicked
         const originalSwitchTab = switchTab;
