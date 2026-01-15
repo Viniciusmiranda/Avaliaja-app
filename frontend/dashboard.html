@@ -3141,44 +3141,6 @@
             }
         }
 
-        async function loadIntegrations() {
-            const container = document.getElementById('integrationsContainer');
-            if (container.children.length > 0) return; // Already loaded
-
-            try {
-                const res = await fetch('/api/company/settings', {
-                    headers: {
-                        'Authorization': `Bearer ${token} `
-                    }
-                });
-                const data = await res.json();
-
-                // Parse strings if necessary
-                const settings = typeof data.settings === 'string' ? JSON.parse(data.settings) : data.settings;
-                const notifications = typeof data.notifications === 'string' ? JSON.parse(data.notifications) : data.notifications;
-
-                if (settings && settings.integrations && Array.isArray(settings.integrations)) {
-                    settings.integrations.forEach(int => addNewIntegrationCard(int.type, int));
-                } else {
-                    // Fallback Legacy
-                    if (notifications) {
-                        if (notifications.whatsappNumbers && notifications.whatsappNumbers.length > 0) {
-                            addNewIntegrationCard('whatsapp', {
-                                name: 'WhatsApp Principal',
-                                value: notifications.whatsappNumbers.join(', '),
-                                rule: notifications.notifyRule
-                            });
-                        }
-                        if (notifications.webhookUrl) {
-                            addNewIntegrationCard('webhook', {
-                                name: 'Webhook N8N',
-                                value: notifications.webhookUrl
-                            });
-                        }
-                    }
-                }
-            } catch (e) { console.error(e); }
-        }
 
         async function saveIntegration(e, cardId) {
             e.preventDefault();
