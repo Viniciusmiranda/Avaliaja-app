@@ -37,6 +37,8 @@ model Company {
   active    Boolean  @default(true)
   users     User[]
   attendants Attendant[]
+  reviews   Review[]
+  associations Association[]
   createdAt  DateTime    @default(now())
 
   // Customization
@@ -90,4 +92,14 @@ model Suggestion {
   createdAt DateTime @default(now())
 
   @@map("suggestions")
+}
+model Association {
+  id        String   @id @default(uuid())
+  name      String
+  logo      String?  
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@map("associations")
 }

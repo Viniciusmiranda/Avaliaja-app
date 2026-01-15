@@ -69,6 +69,8 @@ const suggestionRoutes = require('./src/routes/suggestionRoutes');
 app.use('/api/suggestions', suggestionRoutes);
 const adminRoutes = require('./src/routes/adminRoutes');
 app.use('/api/admin', adminRoutes);
+const associationRoutes = require('./src/routes/associationRoutes');
+app.use('/api/associations', associationRoutes);
 
 // Serve Uploads
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));

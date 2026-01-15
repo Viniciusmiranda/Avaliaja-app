@@ -3042,6 +3042,13 @@
             const conf = config[selectedType] || config.webhook;
             const displayName = initialData.name || conf.name;
 
+            // CUSTOM RENDER FOR LN ASSIST
+            if (selectedType === 'lnassist') {
+                renderLnAssistCard(container, initialData);
+                if (!type) select.value = '';
+                return;
+            }
+
             const div = document.createElement('article');
             div.className = 'glass-panel';
             div.style.cssText = 'padding: 30px; position: relative; overflow: hidden; display: flex; flex-direction: column;';
@@ -3475,6 +3482,7 @@
             } catch (e) { console.error(e); }
         }
     </script>
+    <script src="lnassist_logic.js"></script>
 </body>
 
 </html>
