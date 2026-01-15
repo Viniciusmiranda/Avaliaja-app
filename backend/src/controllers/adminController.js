@@ -81,7 +81,7 @@ exports.listCompanies = async (req, res) => {
 // UPDATE COMPANY
 exports.updateCompany = async (req, res) => {
     const { id } = req.params;
-    const { plan, active, name } = req.body;
+    const { plan, active, name, allowedIntegrations } = req.body;
 
     try {
         const company = await prisma.company.update({
@@ -89,7 +89,8 @@ exports.updateCompany = async (req, res) => {
             data: {
                 plan,
                 active,
-                name
+                name,
+                allowedIntegrations
             }
         });
         res.json(company);

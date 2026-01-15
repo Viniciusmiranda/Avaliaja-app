@@ -69,6 +69,8 @@ const suggestionRoutes = require('./src/routes/suggestionRoutes');
 app.use('/api/suggestions', suggestionRoutes);
 const adminRoutes = require('./src/routes/adminRoutes');
 app.use('/api/admin', adminRoutes);
+const logsRoutes = require('./src/routes/logsRoutes');
+app.use('/api/logs', logsRoutes);
 const associationRoutes = require('./src/routes/associationRoutes');
 app.use('/api/associations', associationRoutes);
 
@@ -84,6 +86,9 @@ app.get('/cadastro', (req, res) => res.sendFile(path.join(frontendPath, 'registe
 app.get('/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date() });
 });
+
+// Serve Docs
+app.use('/docs', express.static(path.join(__dirname, '../docs')));
 
 // Dynamic Routes (Must come after API routes)
 // 1. Dashboard: /:companySlug/dashboard
@@ -114,7 +119,7 @@ app.get('/:slug/:attendant', async (req, res) => {
         const ogDescription = `Sua opinião é fundamental para a ${companyName}. Deixe seu feedback agora.`;
 
         // 3. Image Logic (Company Logo or Professional Default)
-        let ogImage = "https://app.avaliaja.app.br/logo.png"; // Official App Logo
+        let ogImage = "https://app.avaliaja.app.br/images/logo.png"; // Official App Logo
         if (company && company.logo) {
             ogImage = `https://app.avaliaja.app.br${company.logo}`;
         }

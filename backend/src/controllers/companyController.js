@@ -18,7 +18,8 @@ exports.getSettings = async (req, res) => {
                 name: true,
                 area: true,
                 whatsapp: true,
-                plan: true
+                plan: true,
+                allowedIntegrations: true
             }
         });
 

@@ -47,6 +47,7 @@ model Company {
   plan         String   @default("GRATIS") // GRATIS, PEQUENAS, GRANDES
   settings     String?  // Armazena config flexível (perguntas, ordem, etc) - SQLite no JSON
   notifications String? // Armazena config de integrações (WhatsApp, triggers) - SQLite no JSON
+  allowedIntegrations String? // JSON string: ["whatsapp", "lnassist"]
 
   @@map("empresas")
 }
@@ -93,6 +94,7 @@ model Suggestion {
 
   @@map("suggestions")
 }
+
 model Association {
   id        String   @id @default(uuid())
   name      String
@@ -102,4 +104,32 @@ model Association {
   createdAt DateTime @default(now())
 
   @@map("associations")
+}
+
+model WhatsappLog {
+  id        String   @id @default(uuid())
+  companyId String
+  company   Company? @relation(fields: [companyId], references: [id]) // Relation is optional for loose coupling or mandatory? Mandatory.
+  phone     String
+  message   String
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@map("avisos_whatsapp")
+}
+
+model LnAssistLog {
+  id            String   @id @default(uuid())
+  companyId     String
+  company       Company? @relation(fields: [companyId], references: [id])
+  status        String   // situacao_atendimento
+  plate         String?  // placa
+  association   String?  // associacao
+  corporateName String?  // razao_social
+  attendant     String?  // atendente (nome string ou relation?) String for simplicy as requested
+  phone         String?  // telefone_associado
+  serviceDate   DateTime // data_hora_atendimento
+  createdAt     DateTime @default(now())
+
+  @@map("lnassist")
 }

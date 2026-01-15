@@ -24,9 +24,10 @@
     <!-- Chart.js & Google Charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- Favicon -->
-    <link rel="icon" href="icon.ico" type="image/x-icon">
+    <link rel="icon" href="images/icon.ico" type="image/x-icon">
 
     <style>
         :root {
@@ -984,25 +985,27 @@
         <div id="view-integracoes" class="view-section" style="display: none;">
             <h2 style="margin-bottom: 20px;">Conecte seus Apps</h2>
 
-            <!-- ADD INTEGRATION BAR -->
-            <div class="glass-panel"
-                style="padding: 20px; margin-bottom: 30px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-                <div style="flex: 1;">
-                    <label style="display:block; margin-bottom: 8px; font-size: 0.9rem; color: #ccc;">Nova
-                        Integração</label>
-                    <select id="newIntegrationSelect"
-                        style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: #0a1628; color: #fff; cursor: pointer;">
-                        <option value="">Selecione o serviço...</option>
-                        <option value="whatsapp">WhatsApp</option>
-                        <option value="lnassist">LnAssist</option>
-                        <option value="worklab">WorkLab</option>
-                        <option value="amplimed">Amplimed</option>
-                        <option value="webhook">Webhook (N8N/Outros)</option>
-                    </select>
+            <!-- ADD INTEGRATION BAR (Wrapped for Hiding) -->
+            <div id="addIntegrationSection">
+                <div class="glass-panel"
+                    style="padding: 20px; margin-bottom: 30px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                    <div style="flex: 1;">
+                        <label style="display:block; margin-bottom: 8px; font-size: 0.9rem; color: #ccc;">Nova
+                            Integração</label>
+                        <select id="newIntegrationSelect"
+                            style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: #0a1628; color: #fff; cursor: pointer;">
+                            <option value="">Selecione o serviço...</option>
+                            <option value="whatsapp">WhatsApp</option>
+                            <option value="lnassist">LnAssist</option>
+                            <option value="worklab">WorkLab</option>
+                            <option value="amplimed">Amplimed</option>
+                            <option value="webhook">Webhook (N8N/Outros)</option>
+                        </select>
+                    </div>
+                    <button class="btn-glow" onclick="addNewIntegrationCard()" style="height: 45px; margin-top: 24px;">
+                        + Adicionar
+                    </button>
                 </div>
-                <button class="btn-glow" onclick="addNewIntegrationCard()" style="height: 45px; margin-top: 24px;">
-                    + Adicionar
-                </button>
             </div>
 
             <!-- DYNAMIC CONTAINER -->
@@ -1257,8 +1260,7 @@
                                         <input type="color" id="colorInput" value="#4d4dff"
                                             style="border: none; background: none; width: 50px; height: 50px; cursor: pointer;"
                                             oninput="updatePreviewColor(this.value)">
-                                        <span style="font-size: 0.9rem; color: #ccc;">Clique
-                                            para escolher</span>
+                                        <span style="font-size: 0.9rem; color: #ccc;">Clique para escolher</span>
                                     </div>
                                 </div>
 
@@ -1271,8 +1273,7 @@
                                             <input type="file" id="logoInput" hidden accept="image/*"
                                                 onchange="updatePreviewLogo(this)">
                                         </label>
-                                        <span style="font-size: 0.8rem; color: #aaa;">Max 2MB
-                                            (PNG/JPG)</span>
+                                        <span style="font-size: 0.8rem; color: #aaa;">Max 2MB (PNG/JPG)</span>
                                     </div>
                                     <div id="logoPreviewContainer" style="margin-top: 10px; display: none;">
                                         <img id="logoPreviewImg" src="" style="height: 40px; object-fit: contain;">
@@ -1290,8 +1291,8 @@
                                 <div>
                                     <label>Link de Redirecionamento (Opcional)</label>
                                     <p style="font-size: 0.8rem; color: #aaa; margin-bottom: 5px;">
-                                        Após avaliar, o cliente será enviado para este link (ex:
-                                        Google Maps). Deixe vazio
+                                        Após avaliar, o cliente será enviado para este link (ex: Google Maps). Deixe
+                                        vazio
                                         para mensagem padrão.
                                     </p>
                                     <input type="url" id="redirectUrlInput" class="input-light"
@@ -1440,6 +1441,16 @@
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <input type="checkbox" id="adminEditCompanyActive">
                     <label>Empresa Ativa</label>
+                </div>
+
+                <div style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+                    <label style="display:block; margin-bottom: 8px;">Integrações Permitidas</label>
+                    <div style="display:flex; gap: 15px;">
+                        <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox"
+                                id="adminIntWhatsapp"> WhatsApp</label>
+                        <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox"
+                                id="adminIntLnAssist"> LnAssist</label>
+                    </div>
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 15px;">
                     <button type="button" class="btn-secondary"
@@ -1637,7 +1648,7 @@
         async function loadChangelog() {
             const container = document.getElementById('changelogContent');
             try {
-                const res = await fetch('/changelog.md');
+                const res = await fetch('/docs/changelog.md');
                 if (!res.ok) throw new Error("Erro ao carregar");
 
                 // Check if we accidentally got HTML (login page or app shell)
@@ -1702,7 +1713,7 @@
                             const sbLogo = document.getElementById('sidebarLogo');
                             sbLogo.src = data.logo;
                             // If it's the default logo path, add filter, else remove it
-                            if (data.logo.includes('logo.png')) {
+                            if (data.logo.includes('images/logo.png')) {
                                 sbLogo.classList.add('logo-default-filter');
                             } else {
                                 sbLogo.classList.remove('logo-default-filter');
@@ -1785,7 +1796,7 @@
                             const sbLogo = document.getElementById('sidebarLogo');
                             sbLogo.src = data.company.logo;
                             // Check if default
-                            if (data.company.logo.includes('logo.png')) {
+                            if (data.company.logo.includes('images/logo.png')) {
                                 sbLogo.classList.add('logo-default-filter');
                             } else {
                                 sbLogo.classList.remove('logo-default-filter');
@@ -3032,7 +3043,7 @@
             // MAP CONFIG
             const config = {
                 whatsapp: {
-                    name: 'WhatsApp', color: '#25D366', icon: '<img src="/whatsapp.png" style="width:40px;">'
+                    name: 'WhatsApp', color: '#25D366', icon: '<img src="images/whatsapp.png" style="width:40px;">'
                 },
                 lnassist: { name: 'LnAssist', color: '#ff9800', icon: '🩺' },
                 worklab: { name: 'WorkLab', color: '#2196f3', icon: '🧪' },
@@ -3439,7 +3450,7 @@
                         <div style="display: flex; gap: 5px;">
                             <button onclick="window.location.href = '/${c.slug}/dashboard'" 
                                 class="btn-glow" style="padding: 5px 12px; font-size: 0.8rem; background: var(--accent);">Ver Dados</button>
-                            <button onclick="openAdminEditModal('${c.id}', '${c.name.replace(/'/g, "\\'")}', '${c.plan}', ${c.active})" 
+                            <button onclick="openAdminEditModal('${c.id}', '${c.name.replace(/'/g, "\\'")}', '${c.plan}', ${c.active}, '${(c.allowedIntegrations || '[]').replace(/'/g, "\\'")}')" 
                                 class="btn-glow" style="padding: 5px 12px; font-size: 0.8rem;">Editar</button>
                         </div>
                     </td>
@@ -3447,11 +3458,19 @@
             `).join('');
         }
 
-        function openAdminEditModal(id, name, plan, active) {
+        function openAdminEditModal(id, name, plan, active, allowedStr) {
             document.getElementById('adminEditCompanyId').value = id;
             document.getElementById('adminEditCompanyName').value = name;
             document.getElementById('adminEditCompanyPlan').value = plan;
             document.getElementById('adminEditCompanyActive').checked = active;
+
+            // Handle Integrations
+            let allowed = [];
+            try { allowed = allowedStr ? JSON.parse(allowedStr) : []; } catch (e) { }
+
+            document.getElementById('adminIntWhatsapp').checked = allowed.includes('whatsapp');
+            document.getElementById('adminIntLnAssist').checked = allowed.includes('lnassist');
+
             document.getElementById('adminEditModal').classList.add('active');
         }
 
@@ -3462,6 +3481,11 @@
             const plan = document.getElementById('adminEditCompanyPlan').value;
             const active = document.getElementById('adminEditCompanyActive').checked;
 
+            // Collect Integrations
+            const ints = [];
+            if (document.getElementById('adminIntWhatsapp').checked) ints.push('whatsapp');
+            if (document.getElementById('adminIntLnAssist').checked) ints.push('lnassist');
+
             try {
                 const res = await fetch(`/api/admin/companies/${id}`, {
                     method: 'PUT',
@@ -3469,7 +3493,7 @@
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ name, plan, active })
+                    body: JSON.stringify({ name, plan, active, allowedIntegrations: JSON.stringify(ints) })
                 });
 
                 if (res.ok) {
@@ -3483,6 +3507,31 @@
         }
     </script>
     <script src="lnassist_logic.js"></script>
+    <script src="integrations_logic.js"></script>
+
+    <!-- LOGS MODAL -->
+    <div id="logsModal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:2000; align-items:center; justify-content:center; backdrop-filter: blur(5px);">
+        <div class="glass-panel"
+            style="width:90%; max-width:900px; height:80%; display:flex; flex-direction:column; padding:20px; position:relative;">
+            <button onclick="closeLogsModal()"
+                style="position:absolute; top:15px; right:15px; background:none; border:none; color:#fff; font-size:1.5rem; cursor:pointer;">&times;</button>
+            <h2 id="logsModalTitle" style="margin-bottom:20px;">Logs</h2>
+
+            <div style="flex:1; overflow:auto;">
+                <table style="width:100%; border-collapse: collapse; color: #fff;">
+                    <thead style="background: rgba(255,255,255,0.05);">
+                        <tr id="logsTableHeader" style="text-align: left;">
+                            <!-- Dynamic Headers -->
+                        </tr>
+                    </thead>
+                    <tbody id="logsTableBody">
+                        <!-- Dynamic Rows -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
