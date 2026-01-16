@@ -1755,25 +1755,28 @@
                     if (data.primaryColor) document.getElementById('colorInput').value = data.primaryColor;
 
                     if (data.settings) {
-                        const s = typeof data.settings === 'string' ? JSON.parse(data.settings) : data.settings;
-                        if (s.questionTitle) document.getElementById('questionTitleInput').value = s.questionTitle;
-                        if (s.redirectUrl) document.getElementById('redirectUrlInput').value = s.redirectUrl;
-                        if (s.showObservation !== undefined) document.getElementById('showObsInput').checked = s.showObservation;
+                        let s = typeof data.settings === 'string' ? JSON.parse(data.settings) : data.settings;
+                        if (s) {
+                            if (s.questionTitle) document.getElementById('questionTitleInput').value = s.questionTitle;
+                            if (s.redirectUrl) document.getElementById('redirectUrlInput').value = s.redirectUrl;
+                            if (s.showObservation !== undefined) document.getElementById('showObsInput').checked = s.showObservation;
+                        }
                     }
 
                     if (data.notifications) {
-                        const notif = typeof data.notifications === 'string' ? JSON.parse(data.notifications) : data.notifications;
-
-                        // Load N8N Webhook
-                        if (notif.webhookUrl && document.getElementById('n8nWebhookInput')) {
-                            document.getElementById('n8nWebhookInput').value = notif.webhookUrl;
-                        }
-                        // Load WhatsApp Numbers
-                        if (notif.whatsappNumbers && document.getElementById('whatsappInput')) {
-                            document.getElementById('whatsappInput').value = notif.whatsappNumbers.join(', ');
-                        }
-                        if (notif.notifyRule && document.getElementById('notifyRuleInput')) {
-                            document.getElementById('notifyRuleInput').value = notif.notifyRule;
+                        let notif = typeof data.notifications === 'string' ? JSON.parse(data.notifications) : data.notifications;
+                        if (notif) {
+                            // Load N8N Webhook
+                            if (notif.webhookUrl && document.getElementById('n8nWebhookInput')) {
+                                document.getElementById('n8nWebhookInput').value = notif.webhookUrl;
+                            }
+                            // Load WhatsApp Numbers
+                            if (notif.whatsappNumbers && document.getElementById('whatsappInput')) {
+                                document.getElementById('whatsappInput').value = notif.whatsappNumbers.join(', ');
+                            }
+                            if (notif.notifyRule && document.getElementById('notifyRuleInput')) {
+                                document.getElementById('notifyRuleInput').value = notif.notifyRule;
+                            }
                         }
                     }
 
