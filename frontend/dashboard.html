@@ -1832,8 +1832,14 @@
                         qList.innerHTML = '';
                         data.settings.questions.forEach(q => addQuestionField(q));
                     }
+                } else {
+                    console.error('API Error:', res.status);
+                    alert('Falha ao carregar dados: ' + res.status);
                 }
-            } catch (e) { console.error("Error loading settings", e); }
+            } catch (e) {
+                console.error("Error loading settings", e);
+                alert('Erro ao processar personalização. Verifique o console.');
+            }
         }
 
         async function saveCustomization(e) {
