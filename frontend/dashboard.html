@@ -1408,6 +1408,83 @@
         </section>
     </div>
 
+
+    <!-- VIEW: ADMIN INTEGRATIONS MANAGE (New SaaS Tab) -->
+    <div id="view-adminIntegrations" class="view-section" style="display: none; padding: 20px;">
+        <h2 style="margin-bottom: 20px;">Controle de Integrações (SaaS)</h2>
+
+        <section class="glass-panel" style="padding: 20px;">
+            <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+                <input type="text" id="adminIntSearch" placeholder="Buscar cliente..." class="input-light"
+                    style="padding: 10px; border-radius: 5px; width: 300px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th style="padding: 15px;">Empresa</th>
+                            <th style="padding: 15px;">WhatsApp</th>
+                            <th style="padding: 15px;">LnAssist</th>
+                            <th style="padding: 15px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminIntegrationsTableBody">
+                        <!-- Loaded via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <!-- ADMIN INTEGRATIONS MODAL -->
+    <div class="modal-overlay" id="adminIntegrationsModal">
+        <div class="modal-content glass-panel" style="max-width: 500px;">
+            <h2 id="adminIntModalTitle">Configurar Integrações</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">Habilite e gerencie o acesso
+                aos módulos.</p>
+
+            <form onsubmit="handleAdminUpdateIntegrations(event)"
+                style="display: flex; flex-direction: column; gap: 20px;">
+                <input type="hidden" id="adminIntCompanyId">
+
+                <!-- WHATSAPP -->
+                <div class="glass-panel" style="padding: 15px; border: 1px solid rgba(255,255,255,0.1);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <img src="images/whatsapp.png" style="width: 30px;">
+                            <span style="font-weight: bold;">WhatsApp Business</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="chkIntWhatsapp">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- LNASSIST -->
+                <div class="glass-panel" style="padding: 15px; border: 1px solid rgba(255,255,255,0.1);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 1.5rem;">🩺</span>
+                            <span style="font-weight: bold;">LnAssist</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="chkIntLnAssist">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px;">
+                    <button type="button" class="btn-secondary"
+                        onclick="document.getElementById('adminIntegrationsModal').classList.remove('active')">Cancelar</button>
+                    <button type="submit" class="btn-glow">Salvar Configuração</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- ADMIN EDIT MODAL -->
     <div class="modal-overlay" id="adminEditModal">
         <div class="modal-content glass-panel" style="max-width: 450px;">
@@ -1577,7 +1654,8 @@
                 'gestores': 'Gestores',
                 'suporte': 'Suporte',
                 'adminDashboard': 'SaaS Dashboard',
-                'adminCompanies': 'Gestão de Clientes'
+                'adminCompanies': 'Gestão de Clientes',
+                'adminIntegrations': 'Gestão de Integrações SaaS'
             };
             const title = titleMap[viewName] || 'Painel';
             document.getElementById('pageTitle').innerText = title;
@@ -1635,6 +1713,7 @@
             if (tabName === 'suporte') loadSuggestions();
             if (tabName === 'adminDashboard') loadAdminDashboard();
             if (tabName === 'adminCompanies') loadAdminCompanies();
+            if (tabName === 'adminIntegrations') loadAdminIntegrations();
         }
 
         async function loadChangelog() {
@@ -3408,6 +3487,137 @@
                     alert('Erro ao atualizar.');
                 }
             } catch (e) { console.error(e); }
+        }
+
+        // --- ADMIN INTEGRATIONS TAB LOGIC ---
+
+        async function loadAdminIntegrations() {
+            try {
+                const res = await fetch('/api/admin/companies', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const companies = await res.json();
+                renderAdminIntegrationsTable(companies);
+            } catch (e) { console.error(e); }
+        }
+
+        function renderAdminIntegrationsTable(companies) {
+            const tbody = document.getElementById('adminIntegrationsTableBody');
+            const search = document.getElementById('adminIntSearch').value.toLowerCase();
+
+            const filtered = companies.filter(c => c.name.toLowerCase().includes(search));
+
+            tbody.innerHTML = filtered.map(c => {
+                let allowed = [];
+                try { allowed = c.allowedIntegrations ? JSON.parse(c.allowedIntegrations) : []; } catch (e) { }
+
+                const hasWa = allowed.includes('whatsapp');
+                const hasLn = allowed.includes('lnassist');
+
+                return `
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                    <td style="padding: 15px;">
+                        <div style="font-weight: bold;">${c.name}</div>
+                        <small style="color: var(--text-muted);">${c.slug}</small>
+                    </td>
+                    <td style="padding: 15px;">
+                        ${hasWa
+                        ? '<span class="badge" style="background: rgba(37, 211, 102, 0.2); color: #25D366;">Ativo</span>'
+                        : '<span class="badge" style="background: rgba(255, 255, 255, 0.05); color: #666;">Inativo</span>'}
+                    </td>
+                    <td style="padding: 15px;">
+                        ${hasLn
+                        ? '<span class="badge" style="background: rgba(255, 152, 0, 0.2); color: #ff9800;">Ativo</span>'
+                        : '<span class="badge" style="background: rgba(255, 255, 255, 0.05); color: #666;">Inativo</span>'}
+                    </td>
+                    <td style="padding: 15px;">
+                        <button onclick="openAdminIntegrationsModal('${c.id}', '${c.name.replace(/'/g, "\\'")}', '${(c.allowedIntegrations || '[]').replace(/'/g, "\\'")}')" 
+                            class="btn-glow" style="padding: 5px 15px; font-size: 0.8rem;">⚙️ Configurar</button>
+                    </td>
+                </tr>
+            `}).join('');
+        }
+
+        // Search Listener
+        document.getElementById('adminIntSearch').addEventListener('input', loadAdminIntegrations);
+
+        function openAdminIntegrationsModal(id, name, allowedStr) {
+            document.getElementById('adminIntCompanyId').value = id;
+            document.getElementById('adminIntModalTitle').innerText = `Configurar: ${name}`;
+
+            let allowed = [];
+            try { allowed = allowedStr ? JSON.parse(allowedStr) : []; } catch (e) { }
+
+            document.getElementById('chkIntWhatsapp').checked = allowed.includes('whatsapp');
+            document.getElementById('chkIntLnAssist').checked = allowed.includes('lnassist');
+
+            document.getElementById('adminIntegrationsModal').classList.add('active');
+        }
+
+        async function handleAdminUpdateIntegrations(event) {
+            event.preventDefault();
+            const id = document.getElementById('adminIntCompanyId').value;
+            const btn = event.target.querySelector('button[type="submit"]');
+
+            const originalText = btn.innerText;
+            btn.innerText = "Salvando...";
+            btn.disabled = true;
+
+            const ints = [];
+            if (document.getElementById('chkIntWhatsapp').checked) ints.push('whatsapp');
+            if (document.getElementById('chkIntLnAssist').checked) ints.push('lnassist');
+
+            try {
+                // Fetch current company data first to avoid overwriting other fields (Plan, Active, Name)
+                // Or ensure Backend supports partial updates. Prisma does partial update by default for updated fields?
+                // `updateCompany` controller expects: { plan, active, name, allowedIntegrations }
+                // If we send only `allowedIntegrations`, others meant be undefined.
+                // Prisma update `data: { name, plan ... }`. If name is undefined, it might set it to undefined or ignore?
+                // JavaScript: `if (name) updateData.name = name`.
+                // Let's check controller.
+
+                // Controller Logic:
+                // const { plan, active, name, allowedIntegrations } = req.body;
+                // data: { plan, active, name, allowedIntegrations }
+                // If I send ONLY allowedIntegrations, plan/active/name will be undefined.
+                // Prisma `update` will fail if I pass undefined to required fields? No, `update` only updates provided fields in `data`.
+                // BUT `adminController` lines 89-94 pass them DIRECTLY.
+                // `data: { plan, active, name, allowedIntegrations }`
+                // If `plan` is undefined, Prisma might complain or set NULL (if nullable).
+                // `plan` has default "GRATIS".
+
+                // Correction: I must fetch the company first or the Controller needs to handle undefined.
+                // The Controller provided earlier DOES NOT check for undefined. It assigns `req.body` directly.
+                // Wait, I read `companyController.updateSettings` which handles partials.
+                // `adminController.updateCompany` (Lines 82+) does:
+                // const { plan, active, name, allowedIntegrations } = req.body;
+                // await prisma.company.update({ ..., data: { plan, active, name, allowedIntegrations } })
+
+                // If I send JSON with only `allowedIntegrations`, `name` is undefined.
+                // Prisma JS Client: Passing `undefined` to a field in `data` means "Do not update". Passing `null` means Set to NULL.
+                // So this IS safe if I don't send the keys at all?
+                // `JSON.stringify` excludes undefined keys? No, I construct the body manually.
+
+                const payload = { allowedIntegrations: JSON.stringify(ints) };
+
+                const res = await fetch(`/api/admin/companies/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    alert('Integrações atualizadas!');
+                    document.getElementById('adminIntegrationsModal').classList.remove('active');
+                    loadAdminIntegrations();
+                } else {
+                    alert('Erro ao atualizar.');
+                }
+
+            } catch (e) { console.error(e); alert('Erro de conexão'); }
+
+            btn.innerText = originalText;
+            btn.disabled = false;
         }
     </script>
     <script src="lnassist_logic.js"></script>
