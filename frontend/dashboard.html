@@ -984,36 +984,25 @@
 
         <!-- VIEW: INTEGRACOES (REFACTORED) -->
         <div id="view-integracoes" class="view-section" style="display: none;">
-            <h2 style="margin-bottom: 20px;">Conecte seus Apps</h2>
+            <div style="display: flex; flex-direction: column; gap: 20px;">
 
-            <!-- ADD INTEGRATION BAR (Wrapped for Hiding) -->
-            <div id="addIntegrationSection">
-                <div class="glass-panel"
-                    style="padding: 20px; margin-bottom: 30px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-                    <div style="flex: 1;">
-                        <label style="display:block; margin-bottom: 8px; font-size: 0.9rem; color: #ccc;">Nova
-                            Integração</label>
-                        <select id="newIntegrationSelect"
-                            style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: #0a1628; color: #fff; cursor: pointer;">
-                            <option value="">Selecione o serviço...</option>
-                            <option value="whatsapp">WhatsApp</option>
-                            <option value="lnassist">LnAssist</option>
-                            <option value="worklab">WorkLab</option>
-                            <option value="amplimed">Amplimed</option>
-                            <option value="webhook">Webhook (N8N/Outros)</option>
-                        </select>
-                    </div>
-                    <button class="btn-glow" onclick="addNewIntegrationCard()" style="height: 45px; margin-top: 24px;">
-                        + Adicionar
-                    </button>
+                <!-- BUBBLE DOCK (Top Navigation) -->
+                <div id="integrationsBubbleDock" class="glass-panel"
+                    style="padding: 15px; display: flex; align-items: center; gap: 20px; overflow-x: auto; min-height: 90px;">
+                    <!-- Bubbles injected by JS -->
                 </div>
+
+                <!-- MAIN STAGE (Content Area) -->
+                <div id="integrationsMainStage" class="glass-panel" style="padding: 20px; min-height: 400px;">
+                    <p style="text-align: center; color: var(--text-muted); margin-top: 50px;">Selecione uma integração
+                        acima para visualizar os dados.</p>
+                </div>
+
             </div>
 
-            <!-- DYNAMIC CONTAINER -->
-            <div id="integrationsContainer"
-                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 30px;">
-                <!-- Cards will be added here -->
-            </div>
+            <!-- Hidden original container if needed for compatibility (removed active use) -->
+            <div id="integrationsContainer" style="display: none;"></div>
+            <div id="addIntegrationSection" style="display: none;"></div>
         </div>
         </div>
 

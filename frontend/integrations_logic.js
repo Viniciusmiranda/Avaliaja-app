@@ -1,17 +1,17 @@
-// INTEGRATIONS LOGIC - BUBBLES & LOGS
+// INTEGRATIONS LOGIC - BUBBLES & LOGS (Redesigned)
 
 async function loadIntegrations() {
-    const container = document.getElementById('integrationsContainer');
-    const addSection = document.getElementById('addIntegrationSection'); // We'll add this ID to the dropdown area
-    container.innerHTML = '';
+    const dock = document.getElementById('integrationsBubbleDock');
+    const stage = document.getElementById('integrationsMainStage');
 
-    // Hide "Add" section for clients (assuming all non-SaaS admins are clients for now)
-    // The prompt says "o cliente sozinho não poderá adicionar integraçõess"
-    // We can hide it via CSS or JS. Let's assume we hide it by default and only show if Saas Admin? 
-    // Or just hide it completely for now as requested.
-    if (addSection) addSection.style.display = 'none';
+    if (!dock) return;
+    dock.innerHTML = '';
+
+    // Default instruction
+    if (stage) stage.innerHTML = '<p style="text-align: center; color: var(--text-muted); margin-top: 50px;">Selecione uma integração acima para visualizar os dados.</p>';
 
     try {
+        // Fetch Allowed Integrations
         const res = await fetch('/api/company/settings', {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         });
@@ -23,20 +23,21 @@ async function loadIntegrations() {
         } catch (e) { allowed = []; }
 
         if (allowed.length === 0) {
-            container.innerHTML = '<p style="color: #666; width: 100%; text-align: center;">Nenhuma integração ativa.</p>';
+            dock.innerHTML = '<p style="color: #666; font-size: 0.9rem;">Nenhuma integração ativa.</p>';
             return;
         }
 
         allowed.forEach(type => {
-            renderIntegrationBubble(container, type);
+            renderSmallBubble(dock, type);
         });
 
     } catch (e) {
         console.error("Erro ao carregar integrações", e);
+        dock.innerHTML = '<p style="color: red;">Erro ao carregar.</p>';
     }
 }
 
-function renderIntegrationBubble(container, type) {
+function renderSmallBubble(container, type) {
     const config = {
         whatsapp: { name: 'WhatsApp', color: '#25D366', icon: 'images/whatsapp.png', isImg: true },
         lnassist: { name: 'LnAssist', color: '#ff9800', icon: '🩺', isImg: false }
@@ -46,89 +47,97 @@ function renderIntegrationBubble(container, type) {
     if (!conf) return;
 
     const bubble = document.createElement('div');
-    bubble.className = 'glass-panel integration-bubble';
+    bubble.className = 'glass-panel integration-bubble-small';
+    bubble.title = `Ver logs do ${conf.name}`;
     bubble.style.cssText = `
-        width: 120px; 
-        height: 120px; 
+        width: 60px; 
+        height: 60px; 
         display: flex; 
         flex-direction: column; 
         align-items: center; 
         justify-content: center; 
         cursor: pointer; 
-        transition: transform 0.2s;
-        margin: 10px;
+        transition: all 0.2s;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        position: relative;
     `;
-    bubble.onmouseover = () => bubble.style.transform = 'scale(1.05)';
-    bubble.onmouseout = () => bubble.style.transform = 'scale(1)';
-    bubble.onclick = () => openIntegrationModal(type);
 
     let iconHtml = '';
     if (conf.isImg) {
-        iconHtml = `<img src="${conf.icon}" style="width: 50px; height: 50px; margin-bottom: 10px;">`;
+        iconHtml = `<img src="${conf.icon}" style="width: 30px; height: 30px; object-fit: contain;">`;
     } else {
-        iconHtml = `<span style="font-size: 3rem; margin-bottom: 10px;">${conf.icon}</span>`;
+        iconHtml = `<span style="font-size: 1.5rem;">${conf.icon}</span>`;
     }
 
-    bubble.innerHTML = `
-        ${iconHtml}
-        <span style="font-size: 0.9rem; font-weight: bold; color: #fff;">${conf.name}</span>
-    `;
+    bubble.innerHTML = iconHtml;
+
+    // Active State Logic (Visual only, state handled by click)
+    bubble.onclick = () => {
+        // Reset others
+        container.querySelectorAll('.integration-bubble-small').forEach(b => {
+            b.style.border = '1px solid rgba(255,255,255,0.1)';
+            b.style.background = 'rgba(255,255,255,0.05)';
+        });
+        // Activate current
+        bubble.style.border = `2px solid ${conf.color}`;
+        bubble.style.background = `${conf.color}22`; // Low opacity background
+
+        loadIntegrationTable(type);
+    };
 
     container.appendChild(bubble);
 }
 
-// --- MODALS & LOGS ---
+function loadIntegrationTable(type) {
+    const stage = document.getElementById('integrationsMainStage');
+    if (!stage) return;
 
-function openIntegrationModal(type) {
-    const modal = document.getElementById('logsModal');
-    const title = document.getElementById('logsModalTitle');
-    const body = document.getElementById('logsTableBody');
-    const header = document.getElementById('logsTableHeader');
-
-    modal.style.display = 'flex';
-    body.innerHTML = '<tr><td colspan="100%" style="text-align:center;">Carregando...</td></tr>';
+    stage.innerHTML = '<div style="text-align:center; padding: 40px;"><div class="spinner"></div><p>Carregando dados...</p></div>';
 
     if (type === 'whatsapp') {
-        title.innerText = 'Logs do WhatsApp';
-        // Render Header
-        header.innerHTML = `
-            <th>ID</th>
-            <th>Data/Hora</th>
-            <th>Número</th>
-            <th>Mensagem</th>
-            <th>Obs</th>
-        `;
-        loadWhatsappLogs(body);
+        renderWhatsappTable(stage);
     } else if (type === 'lnassist') {
-        title.innerText = 'Atendimentos LnAssist';
-        header.innerHTML = `
-            <th>Data/Hora</th>
-            <th>ID</th>
-            <th>Situação</th>
-            <th>Associado</th>
-            <th>Placa</th>
-            <th>Associação</th>
-            <th>Atendente</th>
-            <th>Tel. Associado</th>
-        `;
-        loadLnAssistLogs(body);
+        renderLnAssistTable(stage);
     }
 }
 
-function closeLogsModal() {
-    document.getElementById('logsModal').style.display = 'none';
-}
+async function renderWhatsappTable(container) {
+    const headerHtml = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3 style="margin:0;">Logs do WhatsApp</h3>
+            <button onclick="loadIntegrationTable('whatsapp')" style="background:none; border:none; color:var(--text-muted); cursor:pointer;">↻ Atualizar</button>
+        </div>
+        <div style="overflow-x: auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Data/Hora</th>
+                        <th>Número</th>
+                        <th>Mensagem</th>
+                        <th>Obs</th>
+                    </tr>
+                </thead>
+                <tbody id="waLogsBody">
+                    <tr><td colspan="5" style="text-align:center;">Carregando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    `;
+    container.innerHTML = headerHtml;
 
-async function loadWhatsappLogs(tbody) {
     try {
         const res = await fetch('/api/logs/whatsapp', {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         });
         const data = await res.json();
-
+        const tbody = document.getElementById('waLogsBody');
         tbody.innerHTML = '';
+
         if (data.logs.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="100%" style="text-align:center;">Nenhum registro encontrado.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Nenhum registro encontrado.</td></tr>';
             return;
         }
 
@@ -143,29 +152,55 @@ async function loadWhatsappLogs(tbody) {
             `;
             tbody.appendChild(tr);
         });
-
     } catch (e) {
         console.error(e);
-        tbody.innerHTML = '<tr><td colspan="100%" style="text-align:center; color:red;">Erro ao carregar.</td></tr>';
+        container.innerHTML += '<p style="color:red; text-align:center;">Erro ao carregar dados.</p>';
     }
 }
 
-async function loadLnAssistLogs(tbody) {
+async function renderLnAssistTable(container) {
+    const headerHtml = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3 style="margin:0;">Atendimentos LnAssist</h3>
+            <button onclick="loadIntegrationTable('lnassist')" style="background:none; border:none; color:var(--text-muted); cursor:pointer;">↻ Atualizar</button>
+        </div>
+        <div style="overflow-x: auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Data/Hora</th>
+                        <th>ID</th>
+                        <th>Situação</th>
+                        <th>Associado</th>
+                        <th>Placa</th>
+                        <th>Associação</th>
+                        <th>Atendente</th>
+                        <th>Tel. Associado</th>
+                    </tr>
+                </thead>
+                <tbody id="lnLogsBody">
+                    <tr><td colspan="8" style="text-align:center;">Carregando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    `;
+    container.innerHTML = headerHtml;
+
     try {
         const res = await fetch('/api/logs/lnassist', {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         });
         const data = await res.json();
-
+        const tbody = document.getElementById('lnLogsBody');
         tbody.innerHTML = '';
+
         if (data.logs.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="100%" style="text-align:center;">Nenhum registro encontrado.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Nenhum registro encontrado.</td></tr>';
             return;
         }
 
         data.logs.forEach(log => {
             const tr = document.createElement('tr');
-            // serviceDate might be null if not yet happened, or use createdAt
             const date = log.serviceDate ? new Date(log.serviceDate).toLocaleString() : '-';
             tr.innerHTML = `
                 <td>${date}</td>
@@ -179,9 +214,8 @@ async function loadLnAssistLogs(tbody) {
             `;
             tbody.appendChild(tr);
         });
-
     } catch (e) {
         console.error(e);
-        tbody.innerHTML = '<tr><td colspan="100%" style="text-align:center; color:red;">Erro ao carregar.</td></tr>';
+        container.innerHTML += '<p style="color:red; text-align:center;">Erro ao carregar dados.</p>';
     }
 }
