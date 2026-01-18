@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const associationController = require('../controllers/associationController');
-const { verifyToken } = require('../middlewares/authMiddleware'); // Ajuste o path se necessário
+const verifyToken = require('../middlewares/authMiddleware'); // Ajuste o path se necessário
 
 // Todas as rotas protégidas por token
 router.use(verifyToken);

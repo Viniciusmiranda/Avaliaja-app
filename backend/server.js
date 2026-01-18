@@ -74,6 +74,42 @@ app.use('/api/logs', logsRoutes);
 const associationRoutes = require('./src/routes/associationRoutes');
 app.use('/api/associations', associationRoutes);
 
+// Changelog Endpoint
+app.get('/api/changelog', (req, res) => {
+    try {
+        // Try multiple locations for robustness
+        const possiblePaths = [
+            path.join(__dirname, '../docs/changelog.md'),
+            path.join(__dirname, 'docs/changelog.md'),
+            path.join('/app/docs/changelog.md'), // Hardcoded docker path
+            path.join(process.cwd(), 'docs/changelog.md'),
+            path.join(frontendPath, '../docs/changelog.md') // adjacent to frontend
+        ];
+
+        console.log("Debug Changelog: Checking paths...", possiblePaths);
+
+        let content = null;
+        for (const p of possiblePaths) {
+            if (fs.existsSync(p)) {
+                console.log("Debug Changelog: Found at", p);
+                content = fs.readFileSync(p, 'utf8');
+                break;
+            }
+        }
+
+        if (content) {
+            res.header('Content-Type', 'text/markdown');
+            res.send(content);
+        } else {
+            console.error("Debug Changelog: NOT FOUND in any path.");
+            res.status(404).json({ error: 'Changelog not found' });
+        }
+    } catch (error) {
+        console.error("Error reading changelog:", error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 // Serve Uploads
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 

@@ -16,11 +16,16 @@ async function loadIntegrations() {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         });
         const data = await res.json();
+        console.log("DEBUG: Notifications Settings Response:", data);
 
         let allowed = [];
         try {
+            console.log("DEBUG: parsing allowedIntegrations:", data.allowedIntegrations);
             allowed = data.allowedIntegrations ? JSON.parse(data.allowedIntegrations) : [];
-        } catch (e) { allowed = []; }
+        } catch (e) {
+            console.error("DEBUG: Parse Error", e);
+            allowed = [];
+        }
 
         if (allowed.length === 0) {
             dock.innerHTML = '<p style="color: #666; font-size: 0.9rem;">Nenhuma integração ativa.</p>';
@@ -39,8 +44,8 @@ async function loadIntegrations() {
 
 function renderSmallBubble(container, type) {
     const config = {
-        whatsapp: { name: 'WhatsApp', color: '#25D366', icon: 'images/whatsapp.png', isImg: true },
-        lnassist: { name: 'LnAssist', color: '#ff9800', icon: '🩺', isImg: false }
+        whatsapp: { name: 'WhatsApp', color: '#25D366', icon: '/images/whatsapp.png', isImg: true },
+        lnassist: { name: 'LnAssist', color: '#ff9800', icon: '/images/logo-lnassist.png', isImg: true }
     };
 
     const conf = config[type];
