@@ -2767,12 +2767,12 @@
 
                 // Render Charts
                 // Temporarily append content to DOM to allow Chart.js to render.
-                // Using fixed position at 0,0 with negative z-index ensures it is "on screen" for html2canvas
-                // but invisible to the user.
-                reportContainer.style.position = 'fixed';
+                // WE MUST MAKE IT VISIBLE for html2canvas to work reliably.
+                // It will overlay the dashboard for a second.
+                reportContainer.style.position = 'absolute';
                 reportContainer.style.top = '0';
                 reportContainer.style.left = '0';
-                reportContainer.style.zIndex = '-9999';
+                reportContainer.style.zIndex = '10000'; // Make it visible on top
                 document.body.appendChild(reportContainer);
 
                 // Bar Chart
