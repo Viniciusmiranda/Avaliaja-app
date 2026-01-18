@@ -233,13 +233,14 @@ exports.getDashboardData = async (req, res) => {
         // Company Details
         const company = await prisma.company.findUnique({
             where: { id: targetCompanyId },
-            select: { name: true, plan: true, logo: true }
+            select: { name: true, plan: true, logo: true, primaryColor: true }
         });
 
         res.json({
             companyName: company?.name || "Minha Empresa",
             plan: company?.plan || "GRATIS",
             logo: company?.logo,
+            primaryColor: company?.primaryColor,
             metrics: {
                 total: totalReviews,
                 average: aggs._avg.stars || 0,
