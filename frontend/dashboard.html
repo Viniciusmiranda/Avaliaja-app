@@ -2808,13 +2808,13 @@
                 reportContainer.id = 'print-report-container';
                 // Styles for print preview on screen
                 reportContainer.style.width = '100%';
-                reportContainer.style.maxWidth = '800px';
+                reportContainer.style.maxWidth = '210mm'; // Match A4 width
                 reportContainer.style.margin = '0 auto';
                 reportContainer.style.padding = '20px';
                 reportContainer.style.background = '#fff';
                 reportContainer.style.color = '#333';
                 reportContainer.style.fontFamily = 'Montserrat, sans-serif';
-                reportContainer.style.minHeight = '100vh';
+                // minHeight removed to prevent print gaps
 
                 // Branding
                 const primaryColor = globalData.primaryColor || '#2b1da7';
@@ -2867,13 +2867,27 @@
                         /* Print Specific Styles */
                         @media print {
                             @page { margin: 1cm; size: A4; }
-                            body { background: white !important; font-size: 12pt; }
+                            body { background: white !important; font-size: 11pt; }
                             .no-print { display: none !important; }
                             .pdf-keep { break-inside: avoid; page-break-inside: avoid; }
                             .page-break { break-after: always; page-break-after: always; page-break-before: always; }
+                            
+                            /* Ensure images and charts scale down */
+                            img, canvas { max-width: 100% !important; height: auto !important; }
+                            
                             /* Hide everything else */
                             body > *:not(#print-report-container) { display: none !important; }
-                            #print-report-container { display: block !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+                            
+                            /* Container adjustments */
+                            #print-report-container { 
+                                display: block !important; 
+                                width: 100% !important; 
+                                margin: 0 !important; 
+                                padding: 0 !important;
+                                /* Prevent horizontal overflow */
+                                max-width: 100% !important;
+                                overflow: hidden; 
+                            }
                         }
                         
                         /* Screen Styles (Preview) */
