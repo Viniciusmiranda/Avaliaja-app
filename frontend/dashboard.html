@@ -3017,13 +3017,13 @@
                 window.scrollTo(0, 0);
 
                 // Define Cleanup Function Globally so buttons can access it
-                window.closePrintView = function() {
+                window.closePrintView = function () {
                     // Restore visibility
                     originalDisplays.forEach(item => {
                         item.element.style.display = item.display;
                     });
                     if (btn) btn.innerText = originalText;
-                    
+
                     // Remove container
                     if (reportContainer && reportContainer.parentNode) {
                         reportContainer.parentNode.removeChild(reportContainer);
@@ -3092,16 +3092,15 @@
                     }
                 });
 
-                // Wait for charts to render and then print
+                // Wait for charts to render
                 setTimeout(() => {
-                    const btn = document.querySelector('button[onclick="window.print()"]');
-                    if(btn) btn.click(); // Automatically trigger print
+                    if (btn) btn.innerText = originalText;
                 }, 800);
 
             } catch (err) {
                 console.error("Erro ao gerar Relatório:", err);
                 alert("Erro ao preparar impressão. Tente Ctrl+P.");
-                 originalDisplays.forEach(item => {
+                originalDisplays.forEach(item => {
                     item.element.style.display = item.display;
                 });
                 if (btn) btn.innerText = originalText;
