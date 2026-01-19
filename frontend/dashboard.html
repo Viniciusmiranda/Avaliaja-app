@@ -2790,7 +2790,7 @@
         async function generatePDF() {
             const btn = document.querySelector('button[onclick="generatePDF()"]');
             const originalText = btn ? btn.innerText : '';
-            if (btn) btn.innerText = "Gerando PDF...";
+            if (btn) btn.innerText = "Preparando...";
 
             // 1. VISIBILITY ISOLATION STRATEGY
             const originalDisplays = [];
@@ -2805,14 +2805,16 @@
             try {
                 // 2. Create Container
                 const reportContainer = document.createElement('div');
-                reportContainer.style.width = '700px'; // Fit within A4 (794px) with margins
+                reportContainer.id = 'print-report-container';
+                // Styles for print preview on screen
+                reportContainer.style.width = '100%';
+                reportContainer.style.maxWidth = '800px';
                 reportContainer.style.margin = '0 auto';
-                reportContainer.style.padding = '20px'; // Reduced padding
+                reportContainer.style.padding = '20px';
                 reportContainer.style.background = '#fff';
                 reportContainer.style.color = '#333';
                 reportContainer.style.fontFamily = 'Montserrat, sans-serif';
-                reportContainer.style.height = 'auto'; // Added for instruction
-                reportContainer.style.overflow = 'visible'; // Added for instruction
+                reportContainer.style.minHeight = '100vh';
 
                 // Branding
                 const primaryColor = globalData.primaryColor || '#2b1da7';
@@ -2851,7 +2853,6 @@
                 // Aggregation: City (New)
                 const cityMap = {};
                 data.forEach(r => {
-                    // Try to get City - could be in r.city or we might need to parse? Assuming r.city exists from viewing previous code.
                     const city = r.city || 'Não identificado';
                     if (!cityMap[city]) cityMap[city] = 0;
                     cityMap[city]++;
@@ -2863,11 +2864,34 @@
                 // HTML Structure
                 reportContainer.innerHTML = `
                     <style>
+                        /* Print Specific Styles */
+                        @media print {
+                            @page { margin: 1cm; size: A4; }
+                            body { background: white !important; font-size: 12pt; }
+                            .no-print { display: none !important; }
+                            .pdf-keep { break-inside: avoid; page-break-inside: avoid; }
+                            .page-break { break-after: always; page-break-after: always; page-break-before: always; }
+                            /* Hide everything else */
+                            body > *:not(#print-report-container) { display: none !important; }
+                            #print-report-container { display: block !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+                        }
+                        
+                        /* Screen Styles (Preview) */
                         .pdf-keep {
                             page-break-inside: avoid !important;
                             break-inside: avoid !important;
                         }
                     </style>
+
+                    <!-- CONTROLS -->
+                    <div class="no-print" style="position: fixed; top: 20px; right: 20px; z-index: 10000; display: flex; gap: 10px;">
+                        <button onclick="window.print()" style="padding: 10px 20px; background: ${primaryColor}; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                            🖨️ Imprimir / Salvar PDF
+                        </button>
+                        <button onclick="closePrintView()" style="padding: 10px 20px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                            ✕ Fechar
+                        </button>
+                    </div>
 
                     <!-- PAGE 1: OVERVIEW -->
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid ${primaryColor}; padding-bottom: 15px;">
@@ -2910,7 +2934,7 @@
                     </div>
 
                     <!-- FORCE PAGE BREAK -->
-                    <div class="html2pdf__page-break"></div>
+                    <div class="page-break" style="page-break-after: always; break-after: always;"></div>
 
                     <!-- PAGE 2: TRENDS & LOCATION -->
                     <h3 style="margin-bottom: 20px; color: ${primaryColor}; margin-top: 30px; font-size: 16px;">Tendências e Localização</h3>
@@ -2930,7 +2954,7 @@
                     </div>
 
                     <!-- FORCE PAGE BREAK -->
-                    <div class="html2pdf__page-break"></div>
+                    <div class="page-break" style="page-break-after: always; break-after: always;"></div>
 
                     <!-- PAGE 3: ATTENDANTS -->
                     <h3 style="margin-bottom: 15px; color: #333; border-left: 4px solid ${primaryColor}; padding-left: 10px; margin-top: 30px; font-size: 16px;">Desempenho por Atendente</h3>
@@ -2957,8 +2981,6 @@
                 }).join('')}
                         </tbody>
                     </table>
-
-                    <!-- FORCE PAGE BREAK? Maybe let flow, assuming table fits or flows to page 4 -->
                     
                     <h3 style="margin-bottom: 15px; color: #333; border-left: 4px solid ${primaryColor}; padding-left: 10px; margin-top: 30px; font-size: 16px;">Detalhamento Geral</h3>
                     <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
@@ -2993,6 +3015,25 @@
                 // 3. Append and Scroll
                 document.body.appendChild(reportContainer);
                 window.scrollTo(0, 0);
+
+                // Define Cleanup Function Globally so buttons can access it
+                window.closePrintView = function() {
+                    // Restore visibility
+                    originalDisplays.forEach(item => {
+                        item.element.style.display = item.display;
+                    });
+                    if (btn) btn.innerText = originalText;
+                    
+                    // Remove container
+                    if (reportContainer && reportContainer.parentNode) {
+                        reportContainer.parentNode.removeChild(reportContainer);
+                    }
+                    delete window.closePrintView;
+                    window.removeEventListener('afterprint', window.closePrintView);
+                };
+
+                // Add event listener for auto-cleanup after print dialog closes
+                window.addEventListener('afterprint', window.closePrintView);
 
                 // Render Charts
                 // Bar
@@ -3051,35 +3092,19 @@
                     }
                 });
 
-                // Wait
-                await new Promise(r => setTimeout(r, 1000));
+                // Wait for charts to render and then print
+                setTimeout(() => {
+                    const btn = document.querySelector('button[onclick="window.print()"]');
+                    if(btn) btn.click(); // Automatically trigger print
+                }, 800);
 
-                const opt = {
-                    margin: [0.2, 0.2, 0.2, 0.2],
-                    filename: `relatorio_${globalData.companyName || 'avaliaja'}_${Date.now()}.pdf`,
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
-                    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
-                    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-                };
-
-                // Generate Blob and Open
-                const pdfBlobUrl = await html2pdf().set(opt).from(reportContainer).output('bloburl');
-                window.open(pdfBlobUrl, '_blank');
-
-                document.body.removeChild(reportContainer);
             } catch (err) {
-                console.error("Erro ao gerar PDF:", err);
-                alert("Erro ao gerar PDF. Verifique o console.");
-            } finally {
-                // Restore
-                originalDisplays.forEach(item => {
+                console.error("Erro ao gerar Relatório:", err);
+                alert("Erro ao preparar impressão. Tente Ctrl+P.");
+                 originalDisplays.forEach(item => {
                     item.element.style.display = item.display;
                 });
                 if (btn) btn.innerText = originalText;
-
-                // Allow scrolling again
-                document.body.style.overflow = '';
             }
         }
 
