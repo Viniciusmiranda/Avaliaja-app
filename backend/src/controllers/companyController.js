@@ -47,8 +47,9 @@ exports.updateSettings = async (req, res) => {
         if (whatsapp) updateData.whatsapp = whatsapp;
 
         // Handle JSON fields (FormData sends as strings)
-        if (settings) updateData.settings = typeof settings === 'string' ? JSON.parse(settings) : settings;
-        if (notifications) updateData.notifications = typeof notifications === 'string' ? JSON.parse(notifications) : notifications;
+        // Store as string directly because schema uses String
+        if (settings) updateData.settings = settings;
+        if (notifications) updateData.notifications = notifications;
 
         if (logoFile) {
             // Save relative path
