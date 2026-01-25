@@ -29,23 +29,72 @@ def verify_prod():
             read_until(fd, b"password:")
             os.write(fd, b"12f46g63H:)\n")
             read_until(fd, b"$")
+
+            js_script = """
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+async function main() {
+    const target = '63257567-c3ee-4fad-9eb1-e92f16803f63';
+    console.log('DIAGNOSTIC_START');
+    console.log(`Checking PROD for: ${target}`);
+    const companies = await prisma.company.findMany({ select: { id: true, name: true, slug: true, id_url: true, users: true } });
+    const match = companies.find(c => c.id === target || c.slug === target || c.id_url === target);
+    if (!match) {
+        console.log("NOT FOUND in PROD.");
+    } else {
+        console.log(`FOUND: Name=${match.name}`);
+        console.log(`Values: ID=${match.id} | Slug=${match.slug} | ID_URL=${match.id_url}`);
+        console.log(`User Count: ${match.users.length}`);
+        if(match.users.length === 0) console.log("WARNING: NO USERS!");
+        else console.log("Users exist.");
+    }
+    console.log('DIAGNOSTIC_END');
+}
+main().catch(console.error).finally(() => prisma.$disconnect());
+"""
+            print("Injecting script into Docker...")
+            # Use docker exec to write file
+            # We need to escape the script for shell properly or use a simpler write method
+            # Writing to a temp file on host first might be cleaner, but let's try direct pipe
+            # Be careful with quotes in js_script when wrapping in bash
             
-            # 1. Run Seed Script (Assuming it was pushed via git)
-            # Path should be /srv/www-avaliaja/backend/scripts/setup_id_url.js
-            print("Running seed script...")
-            os.write(fd, b"cd /srv/www-avaliaja/backend\n")
-            os.write(fd, b"node scripts/setup_id_url.js\n")
-            time.sleep(3)
+            # Simple approach: write logic to a one-liner or use cat with heredoc inside the docker exec
             
-            # 2. Check logs of my manual process (to see if it crashed)
-            os.write(fd, b"cat server.log\n")
-            time.sleep(2)
+            docker_cmd = f"docker exec -i app-backend sh -c 'cat > /app/diagnose_remote.js'"
+            os.write(fd, docker_cmd.encode() + b"\n")
+            # Send the script content
+            os.write(fd, js_script.encode())
+            # Close the file with Ctrl+D behavior? No, we need EOF marker if using cat
+            # Wait, cat > file reads from stdin.
+            # I need to close stdin of the docker exec command.
+            # In pty, I can't easily close stdin without closing fd.
+            # Better: use heredoc in the command itself if possible, but js_script has newlines.
             
-            # 3. Validating via curl against localhost (port 3000)
-            # This hits whichever process is listening (Root or mine)
-            print("Curling endpoint...")
-            os.write(fd, b"curl -v http://localhost:3000/acesso-secreto-123\n")
-            time.sleep(2)
+            # Alternative: echo line by line or use base64?
+            # Let's use the previous cat << 'EOF' approach but wrap it in docker exec?
+            # "docker exec app-backend sh -c \"cat << 'EOF' > /app/diagnose.js ...\"" will be hard to quote.
+            
+            # BEST WAY: Write to host, then docker cp
+            
+            print("Writing to host...")
+            cmd = f"cat << 'EOS' > diagnose_host.js\n{js_script}\nEOS\n"
+            os.write(fd, cmd.encode())
+            time.sleep(1)
+            
+            print("Copying to container...")
+            os.write(fd, b"docker cp diagnose_host.js app-backend:/app/diagnose_remote.js\n")
+            time.sleep(1)
+            
+            print("Running in container...")
+            os.write(fd, b"docker exec app-backend node /app/diagnose_remote.js > /home/vinicius/diag_output.txt 2>&1\n")
+            time.sleep(5)
+            
+            print("Reading output...")
+            os.write(fd, b"cat /home/vinicius/diag_output.txt\n")
+            
+            # Cleanup
+            os.write(fd, b"rm diagnose_host.js\n")
+            os.write(fd, b"docker exec app-backend rm /app/diagnose_remote.js\n")
             
             os.write(fd, b"exit\n")
             
