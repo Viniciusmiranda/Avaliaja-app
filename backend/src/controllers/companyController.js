@@ -46,10 +46,14 @@ exports.updateSettings = async (req, res) => {
         if (area) updateData.area = area;
         if (whatsapp) updateData.whatsapp = whatsapp;
 
-        // Handle JSON fields (FormData sends as strings)
-        // Store as string directly because schema uses String
-        if (settings) updateData.settings = settings;
-        if (notifications) updateData.notifications = notifications;
+        // Handle JSON fields (FormData sends as strings, but sometimes middleware parses it)
+        // Ensure it is a STRING for Prisma
+        if (settings) {
+            updateData.settings = typeof settings === 'object' ? JSON.stringify(settings) : settings;
+        }
+        if (notifications) {
+            updateData.notifications = typeof notifications === 'object' ? JSON.stringify(notifications) : notifications;
+        }
 
         if (logoFile) {
             // Save relative path
