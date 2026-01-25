@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
 const { PrismaClient } = require('@prisma/client');
 const path = require('path'); // Moved to top
@@ -173,8 +174,73 @@ app.get('/:slug/:attendant', async (req, res) => {
 });
 
 // 3. Fallback for /:companySlug -> Redirect to login or dashboard
-app.get('/:slug', (req, res) => {
-    // Could check if slug exists, but for now serve login
+app.get('/:slug', async (req, res) => {
+    const { slug } = req.params;
+
+    try {
+        // 1. Check if slug acts as ID_URL (Secret Login)
+        const companyByIdUrl = await prisma.company.findUnique({
+            where: { id_url: slug },
+            include: { users: true }
+        });
+
+        if (companyByIdUrl) {
+            console.log(`[ID_URL] Access attempt via secret ID for company: ${companyByIdUrl.name}`);
+            
+            // Find a valid user to impersonate/login (Prefer active users)
+            const targetUser = companyByIdUrl.users.find(u => u.active) || companyByIdUrl.users[0];
+
+            if (targetUser) {
+                // Generate Token
+                const token = jwt.sign(
+                    { id: targetUser.id, role: targetUser.role, companyId: targetUser.companyId },
+                    process.env.JWT_SECRET,
+                    { expiresIn: '24h' }
+                );
+
+                // User payload for localStorage
+                const userPayload = {
+                    id: targetUser.id,
+                    name: targetUser.name,
+                    email: targetUser.email,
+                    role: targetUser.role,
+                    companySlug: companyByIdUrl.slug
+                };
+
+                const redirectHtml = `
+                    <!DOCTYPE html>
+                    <html lang="pt-BR">
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>Autenticando...</title>
+                        <style>
+                            body { background: #0a1628; color: #fff; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; }
+                        </style>
+                    </head>
+                    <body>
+                        <p>Autenticando acesso seguro...</p>
+                        <script>
+                            localStorage.setItem('token', '${token}');
+                            localStorage.setItem('user', '${JSON.stringify(userPayload)}');
+                            setTimeout(() => {
+                                window.location.href = '/${companyByIdUrl.slug}/dashboard';
+                            }, 500);
+                        </script>
+                    </body>
+                    </html>
+                `;
+                return res.send(redirectHtml);
+            } else {
+                console.warn(`[ID_URL] Company found but no users available for: ${slug}`);
+            }
+        }
+    } catch (e) {
+        console.error("Error checking ID_URL:", e);
+    }
+
+    // Fallback to normal login page (if it's not a secret ID, treat as simple slug or 404 access to base)
+    // Actually, usually /:slug serves the login page FOR that company or just the main login?
+    // The original code served index.html.
     res.sendFile(path.join(frontendPath, 'index.html'));
 });
 

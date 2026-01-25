@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -29,9 +29,10 @@ model User {
 
 model Company {
   id        String   @id @default(uuid())
-  displayId Int      @default(autoincrement())
+  displayId Int      @default(0)
   name      String
   slug      String   @unique
+  id_url    String?  @unique // URL secreta para login direto
   
   // Novos campos adicionados
   area      String?
@@ -59,7 +60,7 @@ model Company {
 
 model Attendant {
   id        String   @id @default(uuid())
-  displayId Int      @default(autoincrement())
+  displayId Int      @default(0)
   name      String
   email     String?
   phone     String? // Add phone
@@ -77,7 +78,7 @@ model Attendant {
 
 model Review {
   id          String    @id @default(uuid())
-  displayId   Int       @default(autoincrement())
+  displayId   Int       @default(0)
   stars       Int
   comment     String?
   device      String?

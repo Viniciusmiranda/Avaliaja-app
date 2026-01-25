@@ -7,7 +7,7 @@ import select
 # Configuration
 HOST = "vinicius@31.97.90.3"
 PASS = "12f46g63H:)"
-CMD = "cd /srv/app-avaliaja/backend && git pull && echo '12f46g63H:)' | sudo -S docker compose restart"
+CMD = "sed -i 's/protocolTimeout: 120000/protocolTimeout: 300000/g' /srv/infra/whatsapp/index.js && cd /srv/infra/whatsapp && docker compose restart"
 
 def deploy():
     print(f"Starting deployment to {HOST}...")
