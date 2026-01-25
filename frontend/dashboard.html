@@ -1700,6 +1700,9 @@
                 <input type="text" id="attendantPhoneInput" placeholder="Telefone (ex: 11999999999)"
                     style="flex:1; min-width: 200px; padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); color: #fff; outline: none;">
 
+                <input type="email" id="attendantEmailInput" placeholder="E-mail (ex: joao@empresa.com)"
+                    style="flex:1; min-width: 200px; padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); color: #fff; outline: none;">
+
                 <input type="text" id="attendantSectorInput" placeholder="Setor (ex: Vendas)"
                     style="flex:1; min-width: 200px; padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); color: #fff; outline: none;">
             </div>
@@ -2690,6 +2693,7 @@
                 tr.innerHTML = `
             <td><b style="color: ${attColor}; font-size: 1.05rem;">${att.name}</b></td>
             <td>#${att.displayId || '-'}</td>
+            <td>${att.email || '-'}</td>
             <td>${att.phone || '-'}</td>
             <td>${att.sector || '-'}</td>
             <td>${att.integrationId || '-'}</td>
@@ -3131,6 +3135,7 @@
 
                 document.getElementById('attendantIdInput').value = data.id;
                 document.getElementById('attendantNameInput').value = data.name;
+                document.getElementById('attendantEmailInput').value = data.email || '';
                 document.getElementById('attendantPhoneInput').value = data.phone || '';
                 document.getElementById('attendantSectorInput').value = data.sector || '';
                 document.getElementById('attendantIntegrationIdInput').value = data.integrationId || '';
@@ -3142,6 +3147,7 @@
                 // Create Mode
                 document.getElementById('attendantIdInput').value = '';
                 document.getElementById('attendantNameInput').value = '';
+                document.getElementById('attendantEmailInput').value = '';
                 document.getElementById('attendantPhoneInput').value = '';
                 document.getElementById('attendantSectorInput').value = '';
                 document.getElementById('attendantIntegrationIdInput').value = '';
@@ -3169,6 +3175,7 @@
             if (!name) return alert("O nome é obrigatório.");
 
             const phone = document.getElementById('attendantPhoneInput').value.trim();
+            const email = document.getElementById('attendantEmailInput').value.trim();
             const sector = document.getElementById('attendantSectorInput').value.trim();
             const integrationId = document.getElementById('attendantIntegrationIdInput').value.trim();
             const notify = document.getElementById('attendantNotifyInput').checked;
@@ -3182,6 +3189,7 @@
             const payload = {
                 name,
                 phone: phone || null,
+                email: email || null,
                 sector: sector || null,
                 integrationId: integrationId || null,
                 notify,

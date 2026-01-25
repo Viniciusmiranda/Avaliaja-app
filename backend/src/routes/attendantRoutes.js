@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 
 // Create Attendant (Private)
 router.post('/', auth, async (req, res) => {
-    const { name, phone, integrationId, active, sector, notify } = req.body;
+    const { name, phone, email, integrationId, active, sector, notify } = req.body;
     const { companyId } = req.user;
 
     if (!companyId) return res.status(400).json({ error: "Contexto de empresa desconhecido." });
@@ -40,6 +40,7 @@ router.post('/', auth, async (req, res) => {
                 name,
                 companyId,
                 phone: phone || null,
+                email: email || null,
                 integrationId: integrationId || null,
                 sector: sector || null,
                 notify: notify !== undefined ? notify : true,
@@ -61,7 +62,7 @@ router.put('/', (req, res) => {
 router.put('/:id', auth, async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
-    const { name, phone, integrationId, active, sector, notify } = req.body;
+    const { name, phone, email, integrationId, active, sector, notify } = req.body;
 
     try {
         // Verify ownership
@@ -76,6 +77,7 @@ router.put('/:id', auth, async (req, res) => {
             data: {
                 name: name !== undefined ? name : undefined,
                 phone: phone !== undefined ? phone : undefined,
+                email: email !== undefined ? email : undefined,
                 integrationId: integrationId !== undefined ? integrationId : undefined,
                 sector: sector !== undefined ? sector : undefined,
                 notify: notify !== undefined ? notify : undefined,
