@@ -19,38 +19,44 @@ def read_until(fd, marker):
             break
     return buffer
 
-def deploy():
+def fix_provider():
     pid, fd = pty.fork()
     
     if pid == 0:
-        # Child
         os.execvp("ssh", ["ssh", "-o", "StrictHostKeyChecking=no", "vinicius@31.97.90.3"])
     else:
-        # Parent
         try:
-            # Login
             read_until(fd, b"password:")
             os.write(fd, b"12f46g63H:)\n")
+            read_until(fd, b"$")
             
-            read_until(fd, b"$") 
+            # Go to backend
+            os.write(fd, b"cd /srv/app-avaliaja/backend\n")
             
-            # Commands
-            cmds = [
-                "cd /srv/www-avaliaja",
-                "git pull",
-                "cd backend", # Go to backend for prisma
-                "npm install", # Ensure dependencies
-                "npx -y prisma db push", # -y for npx confirm
-                "pm2 restart all",
-                "exit"
-            ]
+            # 1. Modify schema to use postgresql
+            print("Fixing provider to postgresql...")
+            os.write(fd, b"sed -i 's/provider = \"sqlite\"/provider = \"postgresql\"/g' prisma/schema.prisma\n")
+            time.sleep(1)
             
-            for cmd in cmds:
-                print(f"Sending: {cmd}")
-                os.write(fd, (cmd + "\n").encode())
-                time.sleep(5) # Increase wait time for installs
-                
-            # Read remaining output
+            # Verify change
+            os.write(fd, b"head -n 10 prisma/schema.prisma\n")
+            time.sleep(1)
+            
+            # 2. Push DB
+            print("Pushing DB changes to Postgres...")
+            os.write(fd, b"npx -y prisma db push\n")
+            time.sleep(10)
+            
+            # 3. Restart server
+            print("Restarting server...")
+            os.write(fd, b"echo '12f46g63H:)' | sudo -S pkill -f 'node server.js'\n")
+            time.sleep(3)
+            
+            os.write(fd, b"nohup node server.js > server.log 2>&1 &\n")
+            time.sleep(2)
+            
+            os.write(fd, b"exit\n")
+            
             while True:
                 try:
                     chunk = os.read(fd, 1024)
@@ -59,11 +65,10 @@ def deploy():
                     sys.stdout.flush()
                 except OSError:
                     break
-                    
         except Exception as e:
             print(f"Error: {e}")
         finally:
             os.close(fd)
 
 if __name__ == "__main__":
-    deploy()
+    fix_provider()

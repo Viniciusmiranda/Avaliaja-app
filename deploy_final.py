@@ -23,34 +23,30 @@ def deploy():
     pid, fd = pty.fork()
     
     if pid == 0:
-        # Child
         os.execvp("ssh", ["ssh", "-o", "StrictHostKeyChecking=no", "vinicius@31.97.90.3"])
     else:
-        # Parent
         try:
-            # Login
             read_until(fd, b"password:")
             os.write(fd, b"12f46g63H:)\n")
+            read_until(fd, b"$")
             
-            read_until(fd, b"$") 
-            
-            # Commands
+            # Combine commands to ensure directory context
             cmds = [
                 "cd /srv/www-avaliaja",
                 "git pull",
-                "cd backend", # Go to backend for prisma
-                "npm install", # Ensure dependencies
-                "npx -y prisma db push", # -y for npx confirm
-                "pm2 restart all",
+                "cd backend && npm install",
+                "cd /srv/www-avaliaja/backend && npx -y prisma db push",
+                "echo '12f46g63H:)' | sudo -S pkill -f 'node server.js'", # Kill existing root process
+                "sleep 3",
+                "cd /srv/www-avaliaja/backend && nohup node server.js > server.log 2>&1 &", # Start new process
                 "exit"
             ]
             
             for cmd in cmds:
                 print(f"Sending: {cmd}")
                 os.write(fd, (cmd + "\n").encode())
-                time.sleep(5) # Increase wait time for installs
-                
-            # Read remaining output
+                time.sleep(5)
+            
             while True:
                 try:
                     chunk = os.read(fd, 1024)
@@ -59,7 +55,6 @@ def deploy():
                     sys.stdout.flush()
                 except OSError:
                     break
-                    
         except Exception as e:
             print(f"Error: {e}")
         finally:

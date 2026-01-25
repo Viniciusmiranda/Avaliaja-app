@@ -19,38 +19,28 @@ def read_until(fd, marker):
             break
     return buffer
 
-def deploy():
+def db_push():
     pid, fd = pty.fork()
     
     if pid == 0:
-        # Child
         os.execvp("ssh", ["ssh", "-o", "StrictHostKeyChecking=no", "vinicius@31.97.90.3"])
     else:
-        # Parent
         try:
-            # Login
             read_until(fd, b"password:")
             os.write(fd, b"12f46g63H:)\n")
+            read_until(fd, b"$")
             
-            read_until(fd, b"$") 
+            # Run prisma as root
+            print("Running prisma db push as root...")
+            # Note: need full path to npx or ensure it's in path. Assuming root has it if vinicius has it.
+            # OR use --schema flag
             
-            # Commands
-            cmds = [
-                "cd /srv/www-avaliaja",
-                "git pull",
-                "cd backend", # Go to backend for prisma
-                "npm install", # Ensure dependencies
-                "npx -y prisma db push", # -y for npx confirm
-                "pm2 restart all",
-                "exit"
-            ]
+            cmd = "echo '12f46g63H:)' | sudo -S bash -c 'cd /srv/www-avaliaja/backend && npm install && npx prisma db push'"
+            os.write(fd, (cmd + "\n").encode())
+            time.sleep(10)
             
-            for cmd in cmds:
-                print(f"Sending: {cmd}")
-                os.write(fd, (cmd + "\n").encode())
-                time.sleep(5) # Increase wait time for installs
-                
-            # Read remaining output
+            os.write(fd, b"exit\n")
+            
             while True:
                 try:
                     chunk = os.read(fd, 1024)
@@ -59,11 +49,10 @@ def deploy():
                     sys.stdout.flush()
                 except OSError:
                     break
-                    
         except Exception as e:
             print(f"Error: {e}")
         finally:
             os.close(fd)
 
 if __name__ == "__main__":
-    deploy()
+    db_push()

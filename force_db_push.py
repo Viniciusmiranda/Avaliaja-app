@@ -19,38 +19,39 @@ def read_until(fd, marker):
             break
     return buffer
 
-def deploy():
+def force_db_push():
     pid, fd = pty.fork()
     
     if pid == 0:
-        # Child
         os.execvp("ssh", ["ssh", "-o", "StrictHostKeyChecking=no", "vinicius@31.97.90.3"])
     else:
-        # Parent
         try:
-            # Login
             read_until(fd, b"password:")
             os.write(fd, b"12f46g63H:)\n")
+            read_until(fd, b"$")
             
-            read_until(fd, b"$") 
+            os.write(fd, b"cd /srv/app-avaliaja/backend\n")
             
-            # Commands
-            cmds = [
-                "cd /srv/www-avaliaja",
-                "git pull",
-                "cd backend", # Go to backend for prisma
-                "npm install", # Ensure dependencies
-                "npx -y prisma db push", # -y for npx confirm
-                "pm2 restart all",
-                "exit"
-            ]
+            # Ensure provider is postgresql (in case previous script failed or whatever)
+            os.write(fd, b"sed -i 's/provider = \"sqlite\"/provider = \"postgresql\"/g' prisma/schema.prisma\n")
             
-            for cmd in cmds:
-                print(f"Sending: {cmd}")
-                os.write(fd, (cmd + "\n").encode())
-                time.sleep(5) # Increase wait time for installs
-                
-            # Read remaining output
+            # 1. Push DB FORCE
+            print("Pushing DB changes (ACCEPT DATA LOSS)...")
+            os.write(fd, b"npx -y prisma db push --accept-data-loss\n")
+            time.sleep(10)
+            
+            # 2. Restart server
+            print("Restarting server...")
+            os.write(fd, b"echo '12f46g63H:)' | sudo -S pkill -f 'node server.js'\n")
+            time.sleep(3)
+            
+            os.write(fd, b"nohup node server.js > server.log 2>&1 &\n")
+            time.sleep(2)
+            
+            os.write(fd, b"ps aux | grep node\n")
+            
+            os.write(fd, b"exit\n")
+            
             while True:
                 try:
                     chunk = os.read(fd, 1024)
@@ -59,11 +60,10 @@ def deploy():
                     sys.stdout.flush()
                 except OSError:
                     break
-                    
         except Exception as e:
             print(f"Error: {e}")
         finally:
             os.close(fd)
 
 if __name__ == "__main__":
-    deploy()
+    force_db_push()

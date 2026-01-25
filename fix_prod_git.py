@@ -19,38 +19,38 @@ def read_until(fd, marker):
             break
     return buffer
 
-def deploy():
+def fix_prod_git():
     pid, fd = pty.fork()
     
     if pid == 0:
-        # Child
         os.execvp("ssh", ["ssh", "-o", "StrictHostKeyChecking=no", "vinicius@31.97.90.3"])
     else:
-        # Parent
         try:
-            # Login
             read_until(fd, b"password:")
             os.write(fd, b"12f46g63H:)\n")
+            read_until(fd, b"$")
             
-            read_until(fd, b"$") 
+            dir_path = "/srv/app-avaliaja"
+            os.write(fd, f"cd {dir_path}\n".encode())
             
-            # Commands
-            cmds = [
-                "cd /srv/www-avaliaja",
-                "git pull",
-                "cd backend", # Go to backend for prisma
-                "npm install", # Ensure dependencies
-                "npx -y prisma db push", # -y for npx confirm
-                "pm2 restart all",
-                "exit"
-            ]
+            # 1. Check Info
+            print("Checking remote and log...")
+            os.write(fd, b"git remote -v\n")
+            os.write(fd, b"git log -1\n")
+            time.sleep(2)
             
-            for cmd in cmds:
-                print(f"Sending: {cmd}")
-                os.write(fd, (cmd + "\n").encode())
-                time.sleep(5) # Increase wait time for installs
-                
-            # Read remaining output
+            # 2. Fix Remote (Force it to correct one)
+            print("Setting up correct remote and pulling...")
+            os.write(fd, b"git remote set-url origin https://github.com/Viniciusmiranda/Feedback-Nacional24h.git\n")
+            os.write(fd, b"git pull origin main\n")
+            time.sleep(5)
+            
+            # 3. Check schema again
+            print("Verifying schema...")
+            os.write(fd, b"grep 'id_url' backend/prisma/schema.prisma\n")
+            
+            os.write(fd, b"exit\n")
+            
             while True:
                 try:
                     chunk = os.read(fd, 1024)
@@ -59,11 +59,10 @@ def deploy():
                     sys.stdout.flush()
                 except OSError:
                     break
-                    
         except Exception as e:
             print(f"Error: {e}")
         finally:
             os.close(fd)
 
 if __name__ == "__main__":
-    deploy()
+    fix_prod_git()

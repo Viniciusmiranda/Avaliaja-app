@@ -19,38 +19,31 @@ def read_until(fd, marker):
             break
     return buffer
 
-def deploy():
+def diagnose_prod():
     pid, fd = pty.fork()
     
     if pid == 0:
-        # Child
         os.execvp("ssh", ["ssh", "-o", "StrictHostKeyChecking=no", "vinicius@31.97.90.3"])
     else:
-        # Parent
         try:
-            # Login
             read_until(fd, b"password:")
             os.write(fd, b"12f46g63H:)\n")
+            read_until(fd, b"$")
             
-            read_until(fd, b"$") 
+            # Check the directory user is actually using
+            dir_path = "/srv/app-avaliaja"
             
-            # Commands
-            cmds = [
-                "cd /srv/www-avaliaja",
-                "git pull",
-                "cd backend", # Go to backend for prisma
-                "npm install", # Ensure dependencies
-                "npx -y prisma db push", # -y for npx confirm
-                "pm2 restart all",
-                "exit"
-            ]
+            print(f"Checking {dir_path}...")
+            os.write(fd, f"cd {dir_path}\n".encode())
+            os.write(fd, b"git status\n") 
+            time.sleep(2)
             
-            for cmd in cmds:
-                print(f"Sending: {cmd}")
-                os.write(fd, (cmd + "\n").encode())
-                time.sleep(5) # Increase wait time for installs
-                
-            # Read remaining output
+            print("Checking schema content...")
+            os.write(fd, b"grep 'id_url' backend/prisma/schema.prisma\n")
+            time.sleep(2)
+            
+            os.write(fd, b"exit\n")
+            
             while True:
                 try:
                     chunk = os.read(fd, 1024)
@@ -59,11 +52,10 @@ def deploy():
                     sys.stdout.flush()
                 except OSError:
                     break
-                    
         except Exception as e:
             print(f"Error: {e}")
         finally:
             os.close(fd)
 
 if __name__ == "__main__":
-    deploy()
+    diagnose_prod()

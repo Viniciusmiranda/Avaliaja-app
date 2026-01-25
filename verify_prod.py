@@ -19,38 +19,36 @@ def read_until(fd, marker):
             break
     return buffer
 
-def deploy():
+def verify_prod():
     pid, fd = pty.fork()
     
     if pid == 0:
-        # Child
         os.execvp("ssh", ["ssh", "-o", "StrictHostKeyChecking=no", "vinicius@31.97.90.3"])
     else:
-        # Parent
         try:
-            # Login
             read_until(fd, b"password:")
             os.write(fd, b"12f46g63H:)\n")
+            read_until(fd, b"$")
             
-            read_until(fd, b"$") 
+            # 1. Run Seed Script (Assuming it was pushed via git)
+            # Path should be /srv/www-avaliaja/backend/scripts/setup_id_url.js
+            print("Running seed script...")
+            os.write(fd, b"cd /srv/www-avaliaja/backend\n")
+            os.write(fd, b"node scripts/setup_id_url.js\n")
+            time.sleep(3)
             
-            # Commands
-            cmds = [
-                "cd /srv/www-avaliaja",
-                "git pull",
-                "cd backend", # Go to backend for prisma
-                "npm install", # Ensure dependencies
-                "npx -y prisma db push", # -y for npx confirm
-                "pm2 restart all",
-                "exit"
-            ]
+            # 2. Check logs of my manual process (to see if it crashed)
+            os.write(fd, b"cat server.log\n")
+            time.sleep(2)
             
-            for cmd in cmds:
-                print(f"Sending: {cmd}")
-                os.write(fd, (cmd + "\n").encode())
-                time.sleep(5) # Increase wait time for installs
-                
-            # Read remaining output
+            # 3. Validating via curl against localhost (port 3000)
+            # This hits whichever process is listening (Root or mine)
+            print("Curling endpoint...")
+            os.write(fd, b"curl -v http://localhost:3000/acesso-secreto-123\n")
+            time.sleep(2)
+            
+            os.write(fd, b"exit\n")
+            
             while True:
                 try:
                     chunk = os.read(fd, 1024)
@@ -59,11 +57,10 @@ def deploy():
                     sys.stdout.flush()
                 except OSError:
                     break
-                    
         except Exception as e:
             print(f"Error: {e}")
         finally:
             os.close(fd)
 
 if __name__ == "__main__":
-    deploy()
+    verify_prod()
